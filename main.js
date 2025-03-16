@@ -144,7 +144,7 @@ callButton.onclick = async () => {
     });
   });
 
-  hangupButton.disabled = false;
+  //hangupButton.disabled = false;
 };
 
 // 3. Answer the call with the unique ID
@@ -231,6 +231,44 @@ answerButton.onclick = async () => {
     remoteVideo.srcObject = event.streams[0];
   };
 };
+
+
+
+// Function to end the call
+hangupButton.click = async () => {
+  // Stop all local media tracks (audio/video)
+  const localStream = pc.getLocalStreams()[0];  // Assuming you have only one local stream
+  if (localStream) {
+    localStream.getTracks().forEach(track => track.stop()); // Stop all tracks (audio/video)
+  }
+
+  // Close the RTCPeerConnection
+  if (pc) {
+    pc.close();  // Close the peer connection
+    console.log("Peer connection closed");
+  }
+
+  // Optionally: Close the signaling connection (e.g., WebSocket)
+  // signalingSocket.close(); // Uncomment this if you want to close the signaling channel.
+
+  // Optionally: Clean up UI, such as hiding video elements or showing a disconnected message
+  const remoteVideo = document.getElementById('remoteVideo');
+  if (remoteVideo) {
+    remoteVideo.srcObject = null;  // Clear the remote video stream
+  }
+
+  const localVideo = document.getElementById('localVideo');
+  if (localVideo) {
+    localVideo.srcObject = null;  // Clear the local video stream
+  }
+
+  // Reset signaling state (if needed)
+  // You can reset some variables if you want to handle the next call.
+  console.log("Call ended and resources cleaned up");
+  
+  webcamButton.disabled = false;
+}
+
 
 // Function to safely set the local description (answer)
 // async function setLocalDescriptionSafely(answerDescription) {
