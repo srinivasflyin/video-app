@@ -4,7 +4,12 @@ import firebase from 'firebase/app';
 import 'firebase/firestore';
 
 const firebaseConfig = {
-  projectId: 'AIzaSyBH5a2uLtp2aWXNq1H7qdu747fXmNHpCuk'
+  apiKey: "AIzaSyAPs_CgegiTL8V6DOtExxfl9Qz7hOKaqZw",
+  authDomain: "test-firebase-fa21c.firebaseapp.com",
+  projectId: "test-firebase-fa21c",
+  storageBucket: "test-firebase-fa21c.firebasestorage.app",
+  messagingSenderId: "1093304565669",
+  appId: "1:1093304565669:web:c454fcc5651f6436c5324c"
 };
 
 if (!firebase.apps.length) {
