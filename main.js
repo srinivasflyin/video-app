@@ -43,29 +43,29 @@ const hangupButton = document.getElementById('hangupButton');
 function setLocalDescriptionSafely(description) {
   console.log("Setting local description:", description, pc.signalingState);
   if (pc.signalingState === 'stable') {
-      // It's safe to set an offer in 'stable' state
-      pc.setLocalDescription(description)
-          .then(() => {
-              console.log("Local description set successfully.");
-          })
-          .catch((error) => {
-              console.error(`Error setting local description:${pc.signalingState}`, error);
-          });
+    // It's safe to set an offer in 'stable' state
+    pc.setLocalDescription(description)
+      .then(() => {
+        console.log("Local description set successfully.");
+      })
+      .catch((error) => {
+        console.error(`Error setting local description:${pc.signalingState}`, error);
+      });
   } else if (pc.signalingState === 'have-remote-offer' && description.type === 'answer') {
-      // It's safe to set an answer if the signaling state is 'have-remote-offer'
-     pc.setLocalDescription(description)
-          .then(() => {
-              console.log("Local answer set successfully.");
-          })
-          .catch((error) => {
-              console.error(`Error setting local answer:${pc.signalingState}`, error);
-          });
+    // It's safe to set an answer if the signaling state is 'have-remote-offer'
+    pc.setLocalDescription(description)
+      .then(() => {
+        console.log("Local answer set successfully.");
+      })
+      .catch((error) => {
+        console.error(`Error setting local answer:${pc.signalingState}`, error);
+      });
   } else if (pc.signalingState === 'have-remote-offer' && description.type === 'offer') {
     // Step 1: Set the remote description (offer)
     pc.setRemoteDescription(new RTCSessionDescription(description))
 
   } else {
-      console.log(`Cannot set local description in current signaling state:${pc.signalingState}`, pc.signalingState);
+    console.log(`Cannot set local description in current signaling state:${pc.signalingState}`, pc.signalingState);
   }
 }
 
@@ -84,7 +84,9 @@ webcamButton.onclick = async () => {
 
   // Pull tracks from remote stream, add to video stream
   pc.ontrack = (event) => {
+    console.log('hhhhhhhhhhhhhhhhhhhhhhhhhhhh', event);
     event.streams[0].getTracks().forEach((track) => {
+      console.log('track===============');
       remoteStream.addTrack(track);
     });
   };
@@ -146,6 +148,42 @@ callButton.onclick = async () => {
 };
 
 // 3. Answer the call with the unique ID
+// answerButton.onclick = async () => {
+//   const callId = callInput.value;
+//   const callDoc = firestore.collection('calls').doc(callId);
+//   const answerCandidates = callDoc.collection('answerCandidates');
+//   const offerCandidates = callDoc.collection('offerCandidates');
+
+//   pc.onicecandidate = (event) => {
+//     event.candidate && answerCandidates.add(event.candidate.toJSON());
+//   };
+
+//   const callData = (await callDoc.get()).data();
+
+//   const offerDescription = callData.offer;
+//   await pc.setRemoteDescription(new RTCSessionDescription(offerDescription));
+
+//   const answerDescription = await pc.createAnswer();
+//   //await pc.setLocalDescription(answerDescription);
+//   setLocalDescriptionSafely(offerDescription);
+//   const answer = {
+//     type: answerDescription.type,
+//     sdp: answerDescription.sdp,
+//   };
+
+//   await callDoc.update({ answer });
+
+//   offerCandidates.onSnapshot((snapshot) => {
+//     snapshot.docChanges().forEach((change) => {
+//       console.log(change);
+//       if (change.type === 'added') {
+//         let data = change.doc.data();
+//         pc.addIceCandidate(new RTCIceCandidate(data));
+//       }
+//     });
+//   });
+// };
+
 answerButton.onclick = async () => {
   const callId = callInput.value;
   const callDoc = firestore.collection('calls').doc(callId);
@@ -157,19 +195,24 @@ answerButton.onclick = async () => {
   };
 
   const callData = (await callDoc.get()).data();
-
   const offerDescription = callData.offer;
+
+  // Set the remote description (the offer) to establish the connection
   await pc.setRemoteDescription(new RTCSessionDescription(offerDescription));
 
+  // Create an answer
   const answerDescription = await pc.createAnswer();
-  //await pc.setLocalDescription(answerDescription);
-  setLocalDescriptionSafely(offerDescription);
+  // Set the local description (the answer) and send it back to Peer A
+  await setLocalDescriptionSafely(answerDescription);
+
+  // Send the answer to the signaling server
   const answer = {
     type: answerDescription.type,
     sdp: answerDescription.sdp,
   };
 
-  await callDoc.update({ answer });
+  // Send the answer back to Peer A through the signaling server
+  callDoc.update({ answer: answer });
 
   offerCandidates.onSnapshot((snapshot) => {
     snapshot.docChanges().forEach((change) => {
@@ -180,7 +223,24 @@ answerButton.onclick = async () => {
       }
     });
   });
+  // Listen for remote stream after connection is established
+  pc.ontrack = (event) => {
+    // Assuming the remote video element is <video id="remoteVideo">
+    const remoteVideo = document.getElementById('remoteVideo');
+    // Attach the remote stream to the video element
+    remoteVideo.srcObject = event.streams[0];
+  };
 };
+
+// Function to safely set the local description (answer)
+// async function setLocalDescriptionSafely(answerDescription) {
+//   try {
+//     await pc.setLocalDescription(answerDescription);
+//   } catch (error) {
+//     console.error('Error setting local description:', error);
+//   }
+// }
+
 
 
 
