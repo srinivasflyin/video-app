@@ -1,31 +1,3 @@
-<!-- <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WebRTC Simple App</title>
-  <style>
-    body { font-family: Arial, sans-serif; }
-    button { padding: 10px; font-size: 16px; margin: 10px; }
-    #status { margin-top: 20px; }
-  </style>
-</head>
-<body>
-  <h1>WebRTC Example</h1>
-
-  <div>
-    <button id="startOffer">Start Offer (Peer A)</button>
-    <button id="startAnswer" disabled>Start Answer (Peer B)</button>
-  </div>
-
-  <div id="status">Waiting for connection...</div>
-
-  <script type="module" src="/main.js"></script>
-</body>
-</html> -->
-
-
-
 <!DOCTYPE html>
 <html lang="en">
   <head>

@@ -4,10 +4,10 @@ import path from 'path';
  console.log(';;;;;;;;;;;;;;', path.resolve(__dirname, 'ssl/server.key'))
 export default defineConfig({
   server: {
-    https: {
-      key: path.resolve(__dirname, 'ssl/server.key'),
-      cert: path.resolve(__dirname, 'ssl/server.key')
-    },
+    // https: {
+    //   key: path.resolve(__dirname, 'ssl/server.key'),
+    //   cert: path.resolve(__dirname, 'ssl/server.key')
+    // },
     port: 5000 // Change this to your desired port
   }
 });
