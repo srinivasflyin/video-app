@@ -41,6 +41,7 @@ const remoteVideo = document.getElementById('remoteVideo');
 const hangupButton = document.getElementById('hangupButton');
 
 function setLocalDescriptionSafely(description) {
+  console.log("Setting local description:", description, pc.signalingState);
   if (pc.signalingState === 'stable') {
       // It's safe to set an offer in 'stable' state
       pc.setLocalDescription(description)
