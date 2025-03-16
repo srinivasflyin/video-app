@@ -9,10 +9,17 @@ COPY package*.json ./
 # Install dependencies
 RUN npm install
 
+
+COPY . .
+
 # Copy the dist folder, node_modules, dockerfile.yml, package.json, and package-lock.json
 RUN npm run build
 
-COPY . .
+# Set the working directory inside the container
+WORKDIR /app
+
+# Copy the necessary files from the build stage
+#COPY --from=dist /app /app
 
 ENV PORT=5000
 # Expose the port the app runs on
