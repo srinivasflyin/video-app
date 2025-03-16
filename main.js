@@ -40,6 +40,32 @@ const answerButton = document.getElementById('answerButton');
 const remoteVideo = document.getElementById('remoteVideo');
 const hangupButton = document.getElementById('hangupButton');
 
+function setLocalDescriptionSafely(description) {
+  if (pc.signalingState === 'stable') {
+      // It's safe to set an offer in 'stable' state
+      pc.setLocalDescription(description)
+          .then(() => {
+              console.log("Local description set successfully.");
+          })
+          .catch((error) => {
+              console.error("Error setting local description:", error);
+          });
+  } else if (pc.signalingState === 'have-remote-offer' && description.type === 'answer') {
+      // It's safe to set an answer if the signaling state is 'have-remote-offer'
+     pc.setLocalDescription(description)
+          .then(() => {
+              console.log("Local answer set successfully.");
+          })
+          .catch((error) => {
+              console.error("Error setting local answer:", error);
+          });
+  } else {
+      console.log("Cannot set local description in current signaling state:", pc.signalingState);
+  }
+}
+
+
+
 // 1. Setup media sources
 
 webcamButton.onclick = async () => {
@@ -82,7 +108,8 @@ callButton.onclick = async () => {
 
   // Create offer
   const offerDescription = await pc.createOffer();
-  await pc.setLocalDescription(offerDescription);
+  //await pc.setLocalDescription(offerDescription);
+  setLocalDescriptionSafely(offerDescription);
 
   const offer = {
     sdp: offerDescription.sdp,
@@ -130,8 +157,8 @@ answerButton.onclick = async () => {
   await pc.setRemoteDescription(new RTCSessionDescription(offerDescription));
 
   const answerDescription = await pc.createAnswer();
-  await pc.setLocalDescription(answerDescription);
-
+  //await pc.setLocalDescription(answerDescription);
+  setLocalDescriptionSafely(offerDescription);
   const answer = {
     type: answerDescription.type,
     sdp: answerDescription.sdp,
@@ -149,3 +176,4 @@ answerButton.onclick = async () => {
     });
   });
 };
+
