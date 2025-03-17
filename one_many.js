@@ -164,7 +164,12 @@ async function joinBroadcast() {
         remoteVideo.srcObject = remoteStream;
         remoteVideo.autoplay = true;
         remoteVideo.playsInline = true;
-        remoteVideosContainer.appendChild(remoteVideo); // Add remote stream to UI
+        
+        // Only add the remote video once
+        if (!remoteVideosContainer.querySelector(`video[data-remote-id="${event.streams[0].id}"]`)) {
+            remoteVideo.setAttribute('data-remote-id', event.streams[0].id);
+            remoteVideosContainer.appendChild(remoteVideo); // Add remote stream to UI
+        }
     };
 
     // Handle WebRTC offer from broadcaster
