@@ -229,20 +229,20 @@ answerButton.onclick = async () => {
   // await updateDoc(callDocRef, { answer });
 
   // Listen for offer candidates and add them to the peer connection
-  // onSnapshot(offerCandidatesRef, (snapshot) => {
-  //   snapshot.docChanges().forEach((change) => {
-  //     if (change.type === 'added') {
-  //       const data = change.doc.data();
-  //       pc.addIceCandidate(new RTCIceCandidate(data));
-  //     }
-  //   });
-  // });
+  onSnapshot(offerCandidatesRef, (snapshot) => {
+    snapshot.docChanges().forEach((change) => {
+      if (change.type === 'added') {
+        const data = change.doc.data();
+        pc.addIceCandidate(new RTCIceCandidate(data));
+      }
+    });
+  });
 
   // Listen for the remote stream after the connection is established
-  // pc.ontrack = (event) => {
-  //   const remoteVideo = document.getElementById('remoteVideo');
-  //   remoteVideo.srcObject = event.streams[0];
-  // };
+  pc.ontrack = (event) => {
+    const remoteVideo = document.getElementById('remoteVideo');
+    remoteVideo.srcObject = event.streams[0];
+  };
 
   // Disable buttons after establishing the connection
   callButton.disabled = true;
