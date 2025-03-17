@@ -1,7 +1,7 @@
 import './style.css';
 
 import {
-  updateDoc ,
+  updateDoc,
   collection,
   doc,
   addDoc,
@@ -383,7 +383,7 @@ answerButton.onclick = async () => {
 
   // Create an answer
   const answerDescription = await pc.createAnswer();
-  
+
   // Set the local description (the answer) and send it back to Peer A
   await setLocalDescriptionSafely(answerDescription);
 
@@ -428,6 +428,16 @@ hangupButton.onclick = async () => {
   if (localStream) {
     localStream.getTracks().forEach(track => track.stop()); // Stop all tracks (audio/video)
   }
+
+  // Stop the remote stream (if applicable)
+  if (remoteStream) {
+    remoteStream.getTracks().forEach(track => track.stop());
+  }
+
+  // Clear the video elements
+  webcamVideo.srcObject = null;
+  remoteVideo.srcObject = null;
+
 
   // Close the RTCPeerConnection
   if (pc) {
