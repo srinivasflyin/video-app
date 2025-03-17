@@ -71,6 +71,8 @@ const createMeetingButton = document.getElementById("createMeetingButton");
 const joinMeetingButton = document.getElementById("joinMeetingButton");
 const meetingIdInput = document.getElementById("meetingIdInput");
 const messageDivElement = document.getElementById('message');
+
+
 // Create meeting logic
 createMeetingButton.onclick = async () => {
     const meetingId = generateMeetingId();
@@ -97,9 +99,11 @@ Meeting Link: ${window.location.href}meeting.html?meetingId=${meetingId}`;
     // Create a new document in Firestore for the meeting
     //const callDoc = collection(doc(firestore, 'calls', meetingId));
     const callDoc = doc(firestore, 'calls', meetingId);
+
     //await callDoc.set({});
     // Set an empty document
-    await setDoc(callDoc, {});
+    await setDoc(callDoc,{});
+
     // Redirect to meeting page
     //window.location.href = `meeting.html?meetingId=${meetingId}`;
 };
