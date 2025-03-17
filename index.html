@@ -5,7 +5,8 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>WebRTC Demo</title>
-    <style>
+    <link rel="stylesheet" href="./style.css" />
+    <!-- <style>
       /* Universal styles for body */
       body {
         font-family: Arial, sans-serif;
@@ -82,7 +83,7 @@
           width: 90%;
         }
       }
-    </style>
+    </style> -->
   </head>
   <body>
     <div class="container">
@@ -96,8 +97,9 @@
       <h3>2. Join a Meeting</h3>
       <input id="meetingIdInput" placeholder="Enter Meeting ID" />
       <button id="joinMeetingButton">Join</button>
+      <div id="message" style="padding-top: 5px;padding-bottom: 5px;"></div>
     </div>
-
-    <script type="module" src="/main.js"></script>
+     
+    <script type="module" src="/multiroom.main.js"></script>
   </body>
 </html>
