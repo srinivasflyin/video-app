@@ -40,6 +40,23 @@ function generateUniqueCallId() {
     return Math.random().toString(36).substr(2, 9); // Generate a random 9-character call ID
 }
 
+
+// Example of calling createOffer and setting local description (this triggers candidate gathering)
+async function createOffer() {
+    try {
+        const offerDescription = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offerDescription);
+
+        console.log('Created offer and set local description.');
+
+        // Optional: Log the local description
+        console.log('Local Description: ', peerConnection.localDescription);
+    } catch (error) {
+        console.error('Error creating offer: ', error);
+    }
+}
+
+
 // Broadcaster (Host) starts the broadcast
 async function startBroadcast() {
     const broadcasterName = broadcasterNameInput.value;
@@ -92,30 +109,15 @@ async function startBroadcast() {
             }
         };
 
-        // Example of calling createOffer and setting local description (this triggers candidate gathering)
-        async function createOffer() {
-            try {
-                const offerDescription = await peerConnection.createOffer();
-                await peerConnection.setLocalDescription(offerDescription);
-
-                console.log('Created offer and set local description.');
-
-                // Optional: Log the local description
-                console.log('Local Description: ', peerConnection.localDescription);
-            } catch (error) {
-                console.error('Error creating offer: ', error);
-            }
-        }
-
         // Call this function to start the process
-        createOffer();
+        createOffer(peerConnection);
 
         localStream.getTracks().forEach((track) => {
             peerConnection.addTrack(track, localStream);
         });
 
-        const offerDescription = await peerConnection.createOffer();
-        await peerConnection.setLocalDescription(offerDescription);
+        // const offerDescription = await peerConnection.createOffer();
+        // await peerConnection.setLocalDescription(offerDescription);
 
         // Save the WebRTC offer in Firestore
         await updateDoc(callDocRef, {
@@ -141,14 +143,17 @@ function listenForViewers(peerConnection) {
     const offerCandidatesRef = collection(callDocRef, 'offerCandidates');
 
     onSnapshot(callDocRef, async (snapshot) => {
+        console.log('333333333333333333333333333333333', snapshot.data());
         const data = snapshot.data();
         if (data) {
+
             if (data.broadcasterName) {
                 broadcasterNameDisplay.innerText = data.broadcasterName;
             }
 
             // Listen for ICE candidates from viewers
             onSnapshot(offerCandidatesRef, (snapshot) => {
+                console.log('ggggggggggggggggggggggggggggggggggggggggggg', snapshot.docChanges());
                 snapshot.docChanges().forEach((change) => {
                     if (change.type === 'added') {
                         const candidate = new RTCIceCandidate(change.doc.data());
@@ -158,6 +163,21 @@ function listenForViewers(peerConnection) {
             });
         }
     });
+}
+
+
+async function createOffer(peerConnection) {
+    try {
+        const offerDescription = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offerDescription);
+
+        console.log('Created offer and set local description.');
+
+        // Optional: Log the local description
+        console.log('Local Description: ', peerConnection.localDescription);
+    } catch (error) {
+        console.error('Error creating offer: ', error);
+    }
 }
 
 // Viewer (Remote participant) joins the broadcast
@@ -214,22 +234,9 @@ async function joinBroadcast() {
     };
 
     // Example of calling createOffer and setting local description (this triggers candidate gathering)
-    async function createOffer() {
-        try {
-            const offerDescription = await peerConnection.createOffer();
-            await peerConnection.setLocalDescription(offerDescription);
-
-            console.log('Created offer and set local description.');
-
-            // Optional: Log the local description
-            console.log('Local Description: ', peerConnection.localDescription);
-        } catch (error) {
-            console.error('Error creating offer: ', error);
-        }
-    }
 
     // Call this function to start the process
-    createOffer();
+    createOffer(peerConnection);
 
     // Handle the viewer's local stream (even if they are just watching)
     let localViewerStream;
