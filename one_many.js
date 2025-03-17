@@ -116,9 +116,6 @@ function listenForViewers(peerConnection) {
     });
 
 
-    // Create the peer connection for the viewer
-const peerConnection = new RTCPeerConnection();
-
 // Handle ICE connection state changes
 peerConnection.oniceconnectionstatechange = () => {
     console.log('ICE connection state change: ', peerConnection.iceConnectionState);
