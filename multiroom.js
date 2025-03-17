@@ -58,6 +58,7 @@ async function startLocalStream() {
 
 // Function to initiate the peer connection for a remote participant
 async function startPeerConnection(participantId) {
+    console.log('startPeerConnection:', participantId);
   // Initialize a new RTCPeerConnection for each remote peer
   const peerConnection = new RTCPeerConnection(servers);
 
@@ -66,6 +67,7 @@ async function startPeerConnection(participantId) {
 
   // When remote stream is added, display the video
   peerConnection.ontrack = (event) => {
+    console.log('peerConnection.ontrack:', event);
     if (!remoteStreams[participantId]) {
       const remoteVideo = document.createElement("video");
       remoteVideo.srcObject = event.streams[0];
@@ -97,6 +99,7 @@ async function startPeerConnection(participantId) {
 
   // Listen for an answer from the other participant
   onSnapshot(callDocRef, async (snapshot) => {
+    console.log('onSnapshot(callDocRef', snapshot);
     const data = snapshot.data();
     if (data && data.answer && peerConnection) {
       const answerDescription = new RTCSessionDescription(data.answer);
@@ -105,22 +108,28 @@ async function startPeerConnection(participantId) {
   });
 
   peerConnections[participantId] = peerConnection; // Store the peer connection by participantId
+  console.log('onSnapshot(peerConnections[participantId] = peerConnection;', peerConnection);
   return peerConnection;
 }
 
 // Listen for remote candidates and add them to the peer connection
 function listenForRemoteCandidates(participantId, peerConnection) {
+    console.log('listenForRemoteCandidates:participantId', participantId);
+    console.log('listenForRemoteCandidates:peerConnection', peerConnection);
     // const callDoc = firestore.collection('calls').doc(meetingId);
     // const answerCandidates = callDoc.collection('answerCandidates');
     const callDocRef = doc(firestore, 'calls', meetingId);
     // Get reference to the 'answerCandidates' collection within the call document
     const answerCandidates = collection(callDocRef, 'answerCandidates');
-
+   
   onSnapshot(answerCandidates, snapshot => {
+    console.log('onSnapshot(answerCandidates:snapshot', snapshot);
     snapshot.docChanges().forEach((change) => {
-
+        console.log('snapshot.docChanges()', change);
       if (change.type === 'added') {
+        console.log('change.type === :added', change);
         const candidate = new RTCIceCandidate(change.doc.data());
+        console.log('remoteStreams[participantId]', remoteStreams[participantId]);
         //peerConnection.addIceCandidate(candidate);
         if (remoteStreams[participantId]) {
             peerConnection.addIceCandidate(candidate);
@@ -133,6 +142,7 @@ function listenForRemoteCandidates(participantId, peerConnection) {
 
 // Fetch the latest participant (the one who joined last) based on 'joinedAt' field
 async function getLastAddedParticipant(meetingId) {
+    console.log('getLastAddedParticipant:meetingId:', meetingId);
     // const participantsRef = firestore.collection('calls').doc(meetingId).collection('participants');
   
     // // Sort by 'joinedAt' in descending order to get the most recent participant
@@ -147,10 +157,10 @@ const participantsRef = collection(doc(firestore, 'calls', meetingId), 'particip
 
 // Create a query to order by 'joinedAt' in descending order and limit to 1 result
 const participantsQuery = query(participantsRef, orderBy('joinedAt', 'desc'), limit(1));
-
+console.log('participantsQuery:participantsQuery:', participantsQuery);
 // Get the snapshot of the query results
 const snapshot = await getDocs(participantsQuery);
-
+console.log('participantsQuery:result:snapshot:', snapshot);
 if (!snapshot.empty) {
   // Handle the non-empty snapshot
 //}
@@ -197,8 +207,10 @@ if (!snapshot.empty) {
 // Listen for incoming offers (from other participants)
 async function listenForIncomingOffers() {
   const partId = await getLastAddedParticipant(meetingId);
+  console.log('listenForIncomingOffers:partId:', partId);
   // check if latest partcipant id is available
   if (partId) {
+    console.log('listenForIncomingOffers:if:partId:', partId);
   //const callDocRef = doc(firestore, 'calls', meetingId);
   //const participantsRef = collection(callDocRef, 'participants');
 
@@ -209,13 +221,15 @@ const callDocRef = doc(firestore, 'calls', meetingId);
 //onSnapshot(callDocRef, (snapshot) => {
 
   onSnapshot(callDocRef, async (snapshot) => {
+    console.log('onSnapshot(callDocRef:snapshot:', snapshot);
     const data = snapshot.data();
     if (data && data.offer) {
       // In a real application, generate unique IDs for each participant
       // Start a peer connection for the remote participant
       const pc = await startPeerConnection(partId);
+      console.log('await startPeerConnection:pc', pc);
       listenForRemoteCandidates(partId, pc); // Listen for remote candidates for this peer connection
-
+      console.log('listenForRemoteCandidates:pc', pc);
       // Set the received offer as the remote description
       const offerDescription = new RTCSessionDescription(data.offer);
       await pc.setRemoteDescription(offerDescription);
@@ -237,9 +251,10 @@ const callDocRef = doc(firestore, 'calls', meetingId);
 }
 
 // Start the local stream and set up remote participants
-startLocalStream();
+async function init() {
+await startLocalStream();
 listenForIncomingOffers();
-
+}
 // Hangup button handler
 hangupButton.onclick = () => {
   // Stop all local stream tracks
