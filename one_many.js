@@ -10,7 +10,6 @@ const startBroadcastButton = document.getElementById('startBroadcastButton');
 const joinBroadcastButton = document.getElementById('joinBroadcastButton');
 const callIdInput = document.getElementById('callIdInput');
 const localStreamContainer = document.getElementById('localStreamContainer');
-const remoteStreamsContainer = document.getElementById('remoteStreams');
 const broadcasterNameDisplay = document.getElementById('broadcasterNameDisplay');
 const callIdDisplay = document.getElementById('callIdDisplay');
 const remoteVideosContainer = document.getElementById('remoteVideos');
