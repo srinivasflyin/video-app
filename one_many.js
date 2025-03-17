@@ -66,6 +66,50 @@ async function startBroadcast() {
 
         // Create and send the WebRTC offer
         const peerConnection = new RTCPeerConnection();
+        // Create the peer connection for the viewer
+        // Monitor ICE connection state
+        peerConnection.oniceconnectionstatechange = () => {
+            console.log('ICE connection state change: ', peerConnection.iceConnectionState);
+
+            // Check for specific ICE connection states
+            if (peerConnection.iceConnectionState === 'failed') {
+                console.error('ICE connection failed. Attempting to reconnect...');
+                // Handle reconnection logic if needed or alert the user
+            }
+            else if (peerConnection.iceConnectionState === 'connected') {
+                console.log('ICE connection established successfully');
+            }
+        };
+
+        // Handle ICE candidates (for the viewer)
+        peerConnection.onicecandidate = (event) => {
+            if (event.candidate) {
+                console.log('New ICE candidate: ', event.candidate);
+                // If you're sending it somewhere like Firestore:
+                // addDoc(answerCandidatesRef, event.candidate.toJSON());
+            } else {
+                console.log('All ICE candidates have been gathered.');
+            }
+        };
+
+        // Example of calling createOffer and setting local description (this triggers candidate gathering)
+        async function createOffer() {
+            try {
+                const offerDescription = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offerDescription);
+
+                console.log('Created offer and set local description.');
+
+                // Optional: Log the local description
+                console.log('Local Description: ', peerConnection.localDescription);
+            } catch (error) {
+                console.error('Error creating offer: ', error);
+            }
+        }
+
+        // Call this function to start the process
+        createOffer();
+
         localStream.getTracks().forEach((track) => {
             peerConnection.addTrack(track, localStream);
         });
@@ -114,34 +158,6 @@ function listenForViewers(peerConnection) {
             });
         }
     });
-
-
-// Handle ICE connection state changes
-peerConnection.oniceconnectionstatechange = () => {
-    console.log('ICE connection state change: ', peerConnection.iceConnectionState);
-    
-    if (peerConnection.iceConnectionState === 'failed') {
-        console.error('ICE connection failed. Attempting to reconnect...');
-        // You could handle reconnection attempts or alert the user here.
-    }
-
-    // Other possible states to check:
-    // "new" - The connection has just been created, not yet connected.
-    // "checking" - The connection is checking for available ICE candidates.
-    // "connected" - The connection is established.
-    // "disconnected" - The connection was lost, reconnection is being attempted.
-    // "closed" - The connection has been closed.
-    // "failed" - The connection could not be established.
-};
-
-// Example of how you might want to track ICE candidate states:
-peerConnection.onicecandidate = (event) => {
-    if (event.candidate) {
-        console.log('New ICE candidate: ', event.candidate);
-        // Add this ICE candidate to Firestore or the peer connection
-    }
-};
-
 }
 
 // Viewer (Remote participant) joins the broadcast
@@ -168,9 +184,52 @@ async function joinBroadcast() {
     }
 
     const callData = callDocSnapshot.data();
-
+    console.log('callDataffffffffffff', callData);
     // Create the peer connection for the viewer
     const peerConnection = new RTCPeerConnection();
+
+    // Monitor ICE connection state
+    peerConnection.oniceconnectionstatechange = () => {
+        console.log('ICE connection state change: ', peerConnection.iceConnectionState);
+
+        // Check for specific ICE connection states
+        if (peerConnection.iceConnectionState === 'failed') {
+            console.error('ICE connection failed. Attempting to reconnect...');
+            // Handle reconnection logic if needed or alert the user
+        }
+        else if (peerConnection.iceConnectionState === 'connected') {
+            console.log('ICE connection established successfully');
+        }
+    };
+
+    // Handle ICE candidates (for the viewer)
+    peerConnection.onicecandidate = (event) => {
+        if (event.candidate) {
+            console.log('New ICE candidate: ', event.candidate);
+            // If you're sending it somewhere like Firestore:
+            // addDoc(answerCandidatesRef, event.candidate.toJSON());
+        } else {
+            console.log('All ICE candidates have been gathered.');
+        }
+    };
+
+    // Example of calling createOffer and setting local description (this triggers candidate gathering)
+    async function createOffer() {
+        try {
+            const offerDescription = await peerConnection.createOffer();
+            await peerConnection.setLocalDescription(offerDescription);
+
+            console.log('Created offer and set local description.');
+
+            // Optional: Log the local description
+            console.log('Local Description: ', peerConnection.localDescription);
+        } catch (error) {
+            console.error('Error creating offer: ', error);
+        }
+    }
+
+    // Call this function to start the process
+    createOffer();
 
     // Handle the viewer's local stream (even if they are just watching)
     let localViewerStream;
@@ -186,12 +245,13 @@ async function joinBroadcast() {
     }
 
     peerConnection.ontrack = (event) => {
+        console.log('000000000000000000000000000000000000000000000');
         const remoteStream = event.streams[0];
         const remoteVideo = document.createElement('video');
         remoteVideo.srcObject = remoteStream;
         remoteVideo.autoplay = true;
         remoteVideo.playsInline = true;
-        
+
         // Only add the remote video once
         if (!remoteVideosContainer.querySelector(`video[data-remote-id="${event.streams[0].id}"]`)) {
             remoteVideo.setAttribute('data-remote-id', event.streams[0].id);
@@ -236,33 +296,6 @@ async function joinBroadcast() {
             }
         });
     });
-
-// Handle ICE connection state changes
-peerConnection.oniceconnectionstatechange = () => {
-    console.log('ICE connection state change: ', peerConnection.iceConnectionState);
-    
-    if (peerConnection.iceConnectionState === 'failed') {
-        console.error('ICE connection failed. Attempting to reconnect...');
-        // You could handle reconnection attempts or alert the user here.
-    }
-
-    // Other possible states to check:
-    // "new" - The connection has just been created, not yet connected.
-    // "checking" - The connection is checking for available ICE candidates.
-    // "connected" - The connection is established.
-    // "disconnected" - The connection was lost, reconnection is being attempted.
-    // "closed" - The connection has been closed.
-    // "failed" - The connection could not be established.
-};
-
-// Example of how you might want to track ICE candidate states:
-peerConnection.onicecandidate = (event) => {
-    if (event.candidate) {
-        console.log('New ICE candidate: ', event.candidate);
-        // Add this ICE candidate to Firestore or the peer connection
-    }
-};
-
 }
 
 joinBroadcastButton.onclick = joinBroadcast;
