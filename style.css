@@ -64,7 +64,9 @@ input {
   display: flex;
   justify-content: center; /* Center the video containers horizontally */
   align-items: center;     /* Center the video containers vertically */
+  flex-wrap: wrap;         /* Allow wrapping for smaller screens */
   gap: 20px;               /* Space between the local and remote videos */
+  margin-bottom: 30px;
 }
 
 /* Styling for each video container */
@@ -74,15 +76,42 @@ input {
   align-items: center;
 }
 
-/* Reduced size for the video elements */
+/* Default size for video elements */
 video {
-  width: 320px;    /* Reduced width */
-  height: 180px;   /* Reduced height */
+  width: 320px;
+  height: 180px;
   border-radius: 8px;
   background-color: #000; /* Set a background color when the video is not loaded */
   object-fit: cover;
 }
 
+/* Heading inside video container */
 h3 {
   margin-bottom: 10px;
+}
+
+/* Media queries for responsiveness */
+
+/* Small devices (smartphones in portrait mode) */
+@media (max-width: 600px) {
+  video {
+    width: 100%;   /* Videos take full width on smaller screens */
+    height: auto;  /* Auto height to maintain aspect ratio */
+  }
+}
+
+/* Medium devices (tablets in portrait mode) */
+@media (min-width: 601px) and (max-width: 1024px) {
+  video {
+    width: 240px;
+    height: 135px;
+  }
+}
+
+/* Large devices (desktops) */
+@media (min-width: 1025px) {
+  video {
+    width: 480px;
+    height: 270px;
+  }
 }
