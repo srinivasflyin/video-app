@@ -272,3 +272,6 @@ hangupButton.onclick = () => {
   // Redirect to the homepage after hanging up
   window.location.href = 'index.html';
 };
+
+
+init();
