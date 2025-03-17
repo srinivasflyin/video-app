@@ -33,9 +33,8 @@ callIdInput.oninput = () => {
     joinBroadcastButton.disabled = !(viewerNameInput.value && callIdInput.value);
 };
 
-// Hide local video stream until the broadcast starts
-localStreamContainer.style.display = 'none';
 callIdDisplay.style.display = 'none';
+localStreamContainer.style.display = 'none';
 
 // Generate a unique call ID
 function generateUniqueCallId() {
@@ -146,13 +145,26 @@ async function joinBroadcast() {
     // Create the peer connection for the viewer
     const peerConnection = new RTCPeerConnection();
 
+    // Handle the viewer's local stream (even if they are just watching)
+    let localViewerStream;
+    try {
+        localViewerStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        const localViewerVideo = document.createElement('video');
+        localViewerVideo.srcObject = localViewerStream;
+        localViewerVideo.autoplay = true;
+        localViewerVideo.playsInline = true;
+        remoteVideosContainer.appendChild(localViewerVideo); // Add to remoteVideosContainer
+    } catch (error) {
+        console.error('Error accessing viewer local stream:', error);
+    }
+
     peerConnection.ontrack = (event) => {
         const remoteStream = event.streams[0];
         const remoteVideo = document.createElement('video');
         remoteVideo.srcObject = remoteStream;
         remoteVideo.autoplay = true;
         remoteVideo.playsInline = true;
-        remoteVideosContainer.appendChild(remoteVideo);
+        remoteVideosContainer.appendChild(remoteVideo); // Add remote stream to UI
     };
 
     // Handle WebRTC offer from broadcaster
