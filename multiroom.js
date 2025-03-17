@@ -135,10 +135,11 @@ async function startPeerConnection(participantId) {
     };
 
     if (!remoteStreams[participantId]) {
+        console.log('remoteStreams[participantId]:if=======================', remoteStreams[participantId]);
         const remoteVideo = document.createElement("video");
         remoteVideo.srcObject = remoteStreamRef;
         remoteVideo.autoplay = true;
-        remoteVideo.playsinline = true;
+        remoteVideo.playsInline = true;
         remoteVideosContainer.appendChild(remoteVideo);
         remoteStreams[participantId] = remoteVideo;
     }
