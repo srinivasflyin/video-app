@@ -5,7 +5,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         index: './index.html', // Main entry point
-        meeting: './meeting.html', // Additional entry point
+        //meeting: './meeting.html', // Additional entry point
       },
     },
   },

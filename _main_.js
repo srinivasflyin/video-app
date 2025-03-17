@@ -1,21 +1,27 @@
 import './style.css';
 
-import firebase from 'firebase/app';
-import 'firebase/firestore';
+//import firebase from 'firebase/app';
+//import 'firebase/firestore';
+import {
+  doc, setDoc, updateDoc,
+  collection, onSnapshot, addDoc,
+  getDoc
+} from 'firebase/firestore';
 
-const firebaseConfig = {
-  apiKey: "AIzaSyAPs_CgegiTL8V6DOtExxfl9Qz7hOKaqZw",
-  authDomain: "test-firebase-fa21c.firebaseapp.com",
-  projectId: "test-firebase-fa21c",
-  storageBucket: "test-firebase-fa21c.firebasestorage.app",
-  messagingSenderId: "1093304565669",
-  appId: "1:1093304565669:web:c454fcc5651f6436c5324c"
-};
+//import { collection, doc, onSnapshot, addDoc } from 'firebase/firestore';  // Modular SDK functions
+import { firestore } from './firebase.config';
+// const firebaseConfig = {
+//   apiKey: "AIzaSyAPs_CgegiTL8V6DOtExxfl9Qz7hOKaqZw",
+//   authDomain: "test-firebase-fa21c.firebaseapp.com",
+//   projectId: "test-firebase-fa21c",
+//   storageBucket: "test-firebase-fa21c.firebasestorage.app",
+//   messagingSenderId: "1093304565669",
+//   appId: "1:1093304565669:web:c454fcc5651f6436c5324c"
+// };
 
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
-const firestore = firebase.firestore();
+// 
+
+//const firestore = firebase.firestore();
 
 const servers = {
   iceServers: [
@@ -70,6 +76,12 @@ function setLocalDescriptionSafely(description) {
 }
 
 
+// Generate random meeting ID
+function generateMeetingId() {
+  return Math.random().toString(36).substr(2, 9);
+}
+
+
 
 // 1. Setup media sources
 
@@ -101,52 +113,66 @@ webcamButton.onclick = async () => {
 };
 
 // 2. Create an offer
-callButton.onclick = async () => {
-  // Reference Firestore collections for signaling
-  const callDoc = firestore.collection('calls').doc();
-  const offerCandidates = callDoc.collection('offerCandidates');
-  const answerCandidates = callDoc.collection('answerCandidates');
+// callButton.onclick = async () => {
+//   // Reference Firestore collections for signaling
+//   //const callDoc = firestore.collection('calls').doc();
+//   const meetingId = generateMeetingId
+//   const callDoc = doc(collection(firestore, 'calls'))
+//   console.log('ffffffffffffffffff', callDoc);
+//   //const offerCandidates = callDoc.collection('offerCandidates');
+//   //const answerCandidates = callDoc.collection('answerCandidates');
+//   const answerCandidates = collection(callDoc, 'answerCandidates');
+//   //const offerCandidates = collection(callDoc, 'offerCandidates');
+//   callInput.value = callDoc.id;
 
-  callInput.value = callDoc.id;
+//   // Get candidates for caller, save to db
+//   pc.onicecandidate = (event) => {
+//     //event.candidate && offerCandidates.add(event.candidate.toJSON());
+//     if (event.candidate) {
+//       addDoc(collection(doc(firestore, 'calls'), 'offerCandidates'), event.candidate.toJSON());
+//     }
+//   };
 
-  // Get candidates for caller, save to db
-  pc.onicecandidate = (event) => {
-    event.candidate && offerCandidates.add(event.candidate.toJSON());
-  };
+//   // Create offer
+//   const offerDescription = await pc.createOffer();
+//   //await pc.setLocalDescription(offerDescription);
+//   setLocalDescriptionSafely(offerDescription);
 
-  // Create offer
-  const offerDescription = await pc.createOffer();
-  //await pc.setLocalDescription(offerDescription);
-  setLocalDescriptionSafely(offerDescription);
+//   // const offer = {
+//   //   sdp: offerDescription.sdp,
+//   //   type: offerDescription.type,
+//   // };
 
-  const offer = {
-    sdp: offerDescription.sdp,
-    type: offerDescription.type,
-  };
+//   // await callDoc.set({ offer });
+//   // callDoc.setDoc
+//   await setDoc(callDoc, {
+//     offer: {
+//       sdp: offerDescription.sdp,
+//       type: offerDescription.type,
+//     },
+//   });
+//   console.log('ppppppppppppppppppppppp');
+//   // Listen for remote answer
+//   onSnapshot(callDoc, (snapshot) => {
+//     const data = snapshot.data();
+//     if (!pc.currentRemoteDescription && data?.answer) {
+//       const answerDescription = new RTCSessionDescription(data.answer);
+//       pc.setRemoteDescription(answerDescription);
+//     }
+//   });
 
-  await callDoc.set({ offer });
+//   // When answered, add candidate to peer connection
+//   onSnapshot(answerCandidates, snapshot => {
+//     snapshot.docChanges().forEach((change) => {
+//       if (change.type === 'added') {
+//         const candidate = new RTCIceCandidate(change.doc.data());
+//         pc.addIceCandidate(candidate);
+//       }
+//     });
+//   });
 
-  // Listen for remote answer
-  callDoc.onSnapshot((snapshot) => {
-    const data = snapshot.data();
-    if (!pc.currentRemoteDescription && data?.answer) {
-      const answerDescription = new RTCSessionDescription(data.answer);
-      pc.setRemoteDescription(answerDescription);
-    }
-  });
-
-  // When answered, add candidate to peer connection
-  answerCandidates.onSnapshot((snapshot) => {
-    snapshot.docChanges().forEach((change) => {
-      if (change.type === 'added') {
-        const candidate = new RTCIceCandidate(change.doc.data());
-        pc.addIceCandidate(candidate);
-      }
-    });
-  });
-
-  //hangupButton.disabled = false;
-};
+//   //hangupButton.disabled = false;
+// };
 
 // 3. Answer the call with the unique ID
 // answerButton.onclick = async () => {
@@ -187,15 +213,24 @@ callButton.onclick = async () => {
 
 answerButton.onclick = async () => {
   const callId = callInput.value;
-  const callDoc = firestore.collection('calls').doc(callId);
-  const answerCandidates = callDoc.collection('answerCandidates');
-  const offerCandidates = callDoc.collection('offerCandidates');
+  //const callDoc = firestore.collection('calls').doc(callId);
+  //const answerCandidates = callDoc.collection('answerCandidates');
+  //const offerCandidates = callDoc.collection('offerCandidates');
 
+
+  const callDoc = doc(firestore, 'calls', callId);
+  //const callDocRef = doc(firestore, 'calls', meetingId);
+  //const offerCandidates = callDoc.collection('offerCandidates');
+  //const answerCandidates = callDoc.collection('answerCandidates');
+  const answerCandidates = collection(callDoc, 'answerCandidates');
+  const offerCandidates = collection(callDoc, 'offerCandidates');
   pc.onicecandidate = (event) => {
     event.candidate && answerCandidates.add(event.candidate.toJSON());
   };
 
-  const callData = (await callDoc.get()).data();
+ // const callData = (await callDoc.get()).data();
+  const callDocSnapshot = await getDoc(callDoc); // Fetch the document snapshot
+  const callData = callDocSnapshot.data(); // Get the document data
   const offerDescription = callData.offer;
 
   // Set the remote description (the offer) to establish the connection
@@ -204,7 +239,7 @@ answerButton.onclick = async () => {
   // Create an answer
   const answerDescription = await pc.createAnswer();
   // Set the local description (the answer) and send it back to Peer A
-  await setLocalDescriptionSafely(answerDescription);
+  setLocalDescriptionSafely(answerDescription);
 
   // Send the answer to the signaling server
   const answer = {
@@ -213,16 +248,25 @@ answerButton.onclick = async () => {
   };
 
   // Send the answer back to Peer A through the signaling server
-  callDoc.update({ answer: answer });
+  //callDoc.update({ answer: answer });
+  await updateDoc(callDoc, {
+    answer: {
+        sdp: answer.sdp,
+        type: answer.type,
+    },
+});
 
-  offerCandidates.onSnapshot((snapshot) => {
+onSnapshot(offerCandidates, (snapshot) => {
+
     snapshot.docChanges().forEach((change) => {
       console.log(change);
       if (change.type === 'added') {
         let data = change.doc.data();
         pc.addIceCandidate(new RTCIceCandidate(data));
       }
+
     });
+
   });
   // Listen for remote stream after connection is established
   pc.ontrack = (event) => {

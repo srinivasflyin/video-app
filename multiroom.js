@@ -71,8 +71,11 @@ function setLocalDescriptionSafely(description, pc) {
             });
     } else if (pc.signalingState === 'have-remote-offer' && description.type === 'offer') {
         // Step 1: Set the remote description (offer)
-        pc.setRemoteDescription(new RTCSessionDescription(description))
-
+        try {
+            pc.setRemoteDescription(new RTCSessionDescription(description))
+        } catch (error) {
+            console.log('error:setLocalDescriptionSafely', error);
+        }
     } else {
         console.log(`Cannot set local description in current signaling state:${pc.signalingState}`, pc.signalingState);
     }
@@ -93,16 +96,16 @@ async function startLocalStream() {
 
 function addTrackSafely(pc, track, stream) {
     const senders = pc.getSenders();
-    
+
     // Check if there's already a sender for this track
     const senderExists = senders.some(sender => sender.track === track);
-  
+
     if (!senderExists) {
-      pc.addTrack(track, stream);
+        pc.addTrack(track, stream);
     } else {
-      console.log('Track already added.');
+        console.log('Track already added.');
     }
-  }
+}
 
 // Function to initiate the peer connection for a remote participant
 async function startPeerConnection(participantId) {
@@ -118,12 +121,12 @@ async function startPeerConnection(participantId) {
     // localStream.getTracks().forEach((track) => {
     //     peerConnection.addTrack(track, localStream);
     // });
-      
-      // Example usage
-      const videoTrack = localStream.getVideoTracks()[0]; // Assuming you have a localStream
-      addTrackSafely(peerConnection, videoTrack, localStream);
 
-      
+    // Example usage
+    const videoTrack = localStream.getVideoTracks()[0]; // Assuming you have a localStream
+    addTrackSafely(peerConnection, videoTrack, localStream);
+
+
 
     // Pull tracks from remote stream, add to video stream
     peerConnection.ontrack = (event) => {
@@ -185,11 +188,17 @@ async function startPeerConnection(participantId) {
 
     // Listen for an answer from the other participant
     onSnapshot(callDocRef, async (snapshot) => {
-        console.log('onSnapshot(callDocRef', snapshot);
+        console.log('onSnapshot(callDocRef', peerConnection);
         const data = snapshot.data();
         if (data && data.answer && peerConnection) {
             const answerDescription = new RTCSessionDescription(data.answer);
-            peerConnection.setRemoteDescription(answerDescription);
+            try {
+                console.log('===============================');
+           peerConnection.setRemoteDescription(answerDescription);
+           console.log('================-----===============');
+            } catch(error) {
+                console.log('error:onSnapshot(callDocRef==========',error);
+            }
         }
 
         // if (!peerConnection.currentRemoteDescription && data?.answer) {
@@ -212,9 +221,17 @@ async function listenForRemoteCandidates(participantId, peerConnection) {
     const callDocRef = doc(firestore, 'calls', meetingId);
     // Get reference to the 'answerCandidates' collection within the call document
     const answerCandidates = collection(callDocRef, 'answerCandidates');
-    const offerCandidates = collection(callDocRef, 'offerCandidates')
+    const offerCandidates = collection(callDocRef, 'offerCandidates');
+
+    peerConnection.onicecandidate = (event) => {
+        //event.candidate && answerCandidates.add(event.candidate.toJSON());
+        if (event.candidate) {
+            addDoc(collection(doc(firestore, 'calls', meetingId), 'answerCandidates'), event.candidate.toJSON());
+        }
+    };
+
     onSnapshot(answerCandidates, snapshot => {
-        console.log('onSnapshot(answerCandidates:snapshot', snapshot);
+        //console.log('onSnapshot(answerCandidates:snapshot', snapshot);
         snapshot.docChanges().forEach((change) => {
             console.log('snapshot.docChanges()', change);
             if (change.type === 'added') {
@@ -240,8 +257,11 @@ async function listenForRemoteCandidates(participantId, peerConnection) {
     const offerDescription = callData.offer;
 
     // Set the remote description (the offer) to establish the connection
-    await peerConnection.setRemoteDescription(new RTCSessionDescription(offerDescription));
-
+    try {
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(offerDescription));
+    } catch (error) {
+        console.log('error:listenForRemoteCandidates:1', error);
+    }
     // Create an answer
     const answerDescription = await peerConnection.createAnswer();
     // Set the local description (the answer) and send it back to Peer A
@@ -254,7 +274,7 @@ async function listenForRemoteCandidates(participantId, peerConnection) {
     };
 
     // Send the answer back to Peer A through the signaling server
-   // callDoc.update({ answer: answer });
+    // callDoc.update({ answer: answer });
     await updateDoc(callDocRef, {
         answer: {
             sdp: answer.sdp,
