@@ -114,6 +114,37 @@ function listenForViewers(peerConnection) {
             });
         }
     });
+
+
+    // Create the peer connection for the viewer
+const peerConnection = new RTCPeerConnection();
+
+// Handle ICE connection state changes
+peerConnection.oniceconnectionstatechange = () => {
+    console.log('ICE connection state change: ', peerConnection.iceConnectionState);
+    
+    if (peerConnection.iceConnectionState === 'failed') {
+        console.error('ICE connection failed. Attempting to reconnect...');
+        // You could handle reconnection attempts or alert the user here.
+    }
+
+    // Other possible states to check:
+    // "new" - The connection has just been created, not yet connected.
+    // "checking" - The connection is checking for available ICE candidates.
+    // "connected" - The connection is established.
+    // "disconnected" - The connection was lost, reconnection is being attempted.
+    // "closed" - The connection has been closed.
+    // "failed" - The connection could not be established.
+};
+
+// Example of how you might want to track ICE candidate states:
+peerConnection.onicecandidate = (event) => {
+    if (event.candidate) {
+        console.log('New ICE candidate: ', event.candidate);
+        // Add this ICE candidate to Firestore or the peer connection
+    }
+};
+
 }
 
 // Viewer (Remote participant) joins the broadcast
@@ -208,6 +239,33 @@ async function joinBroadcast() {
             }
         });
     });
+
+// Handle ICE connection state changes
+peerConnection.oniceconnectionstatechange = () => {
+    console.log('ICE connection state change: ', peerConnection.iceConnectionState);
+    
+    if (peerConnection.iceConnectionState === 'failed') {
+        console.error('ICE connection failed. Attempting to reconnect...');
+        // You could handle reconnection attempts or alert the user here.
+    }
+
+    // Other possible states to check:
+    // "new" - The connection has just been created, not yet connected.
+    // "checking" - The connection is checking for available ICE candidates.
+    // "connected" - The connection is established.
+    // "disconnected" - The connection was lost, reconnection is being attempted.
+    // "closed" - The connection has been closed.
+    // "failed" - The connection could not be established.
+};
+
+// Example of how you might want to track ICE candidate states:
+peerConnection.onicecandidate = (event) => {
+    if (event.candidate) {
+        console.log('New ICE candidate: ', event.candidate);
+        // Add this ICE candidate to Firestore or the peer connection
+    }
+};
+
 }
 
 joinBroadcastButton.onclick = joinBroadcast;
