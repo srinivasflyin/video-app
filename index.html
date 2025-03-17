@@ -4,40 +4,153 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>WebRTC Demo</title>
+    <title>WebRTC Multi-Stream App</title>
+    <style>@import url('https://fonts.googleapis.com/css2?family=Syne+Mono&display=swap');
+
+        /* Universal styles for body */
+        body {
+          font-family: Arial, sans-serif;
+          background-color: #f4f4f9;
+          margin: 0;
+          padding: 0;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          min-height: 100vh;
+          flex-direction: column;
+        }
+        
+        h2, h3 {
+          text-align: center;
+        }
+        
+        input {
+          margin-bottom: 10px;
+          padding: 10px;
+          width: 80%;
+          border-radius: 5px;
+          border: 1px solid #ccc;
+          font-size: 1rem;
+          text-align: center;
+        }
+        
+        button {
+          margin: 10px;
+          padding: 10px 20px;
+          border: none;
+          border-radius: 5px;
+          background-color: #007bff;
+          color: white;
+          cursor: pointer;
+          font-size: 1rem;
+        }
+        
+        button:disabled {
+          background-color: #ddd;
+          cursor: not-allowed;
+        }
+        
+        button:hover:not(:disabled) {
+          background-color: #0056b3;
+        }
+        
+        /* Video stream container styles */
+        .videos {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          margin-top: 20px;
+          gap: 20px;
+        }
+        
+        .video-container {
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+        
+        video {
+          width: 320px;
+          height: 240px;
+          border-radius: 10px;
+          background-color: #000;
+          object-fit: cover;
+          margin-bottom: 10px;
+        }
+        
+        /* Name display overlay on videos */
+        .video-container h3 {
+          position: absolute;
+          bottom: 10px;
+          left: 50%;
+          transform: translateX(-50%);
+          color: white;
+          background-color: rgba(0, 0, 0, 0.5);
+          padding: 5px;
+          border-radius: 5px;
+          font-size: 1rem;
+          width: 90%;
+          text-align: center;
+        }
+        
+        /* Broadcaster and viewer sections layout */
+        #broadcaster-section, #viewer-section {
+          width: 100%;
+          max-width: 400px;
+          margin-bottom: 20px;
+          text-align: center;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+          video {
+            width: 240px;
+            height: 180px;
+          }
+        }
+        
+        @media (max-width: 480px) {
+          video {
+            width: 200px;
+            height: 150px;
+          }
+        }
+        </style>
   </head>
   <body>
-
-    <!-- Centered content -->
-    <div class="center-container">
-      <h2>1. Start your Webcam</h2>
-      <button id="webcamButton">Start webcam</button>
-
-      <h2>2. Create a new Call</h2>
-      <button id="callButton" disabled>Create Call (offer)</button>
-
-      <h2>3. Join a Call</h2>
-      <p>Answer the call from a different browser window or device</p>
-      <input id="callInput" />
-      <button id="answerButton" disabled>Answer</button>
-
-      <h2>4. Hangup</h2>
-      <button id="hangupButton" disabled>Hangup</button>
+    <!-- Broadcaster Section -->
+    <div id="broadcaster-section">
+      <h2>Start your Broadcast</h2>
+      <label for="broadcasterName">Enter your name:</label>
+      <input id="broadcasterName" type="text" placeholder="Your name" required />
+      <br />
+      <button id="startBroadcastButton" disabled>Start Broadcast</button>
+    </div>
+    <div style="display: flex;">
+      <span >Meeting ID</span>: <span id="callIdDisplay"></span>
+    </div>
+    <!-- Viewer Section -->
+    <div id="viewer-section">
+      <h2>Join a Broadcast</h2>
+      <label for="viewerName">Enter your name:</label>
+      <input id="viewerName" type="text" placeholder="Your name" required />
+      <br />
+      <input id="callIdInput" placeholder="Enter Call ID" />
+      <button id="joinBroadcastButton" disabled>Join Broadcast</button>
     </div>
 
-    <!-- Video section starts here -->
-    <div class="videos">
-      <div class="video-container">
-        <h3>Local Stream</h3>
-        <video id="webcamVideo" autoplay playsinline></video>
+    <!-- Video Section -->
+    <div id="videos" class="videos">
+      <div id="localStreamContainer" class="video-container">
+        <h3 id="broadcasterNameDisplay"></h3>
+        <video id="localVideo" autoplay playsinline muted></video>
       </div>
-      <div class="video-container">
-        <h3>Remote Stream</h3>
-        <video id="remoteVideo" autoplay playsinline></video>
-      </div>
+      <div id="remoteVideos" class="remote-videos-container">
+        <!-- Remote video streams will be appended here -->
+    </div>
     </div>
 
-    <script type="module" src="./main.js"></script>
-
+    <script type="module" src="./one_many.js"></script>
   </body>
 </html>
