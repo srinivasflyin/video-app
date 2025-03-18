@@ -19,8 +19,6 @@ const servers = {
 };
 
 
-
-
 // Function to display notifications
 function showNotification(message) {
   const notificationContainer = document.getElementById('notificationContainer');
@@ -41,11 +39,55 @@ let remoteStream = null;
 let meetingId = '';
 let dataChannel = null; // Data channel for messaging
 
-// Listen for incoming messages on the data channel
-dataChannel.onmessage = (event) => {
-  console.log('Message from remote: ', event.data);
-  showNotification(event.data);  // Display the received message in the notification container
-};
+// Create the data channel and set up the message sending/receiving logic
+function createDataChannel() {
+  // Create the data channel for sending and receiving messages
+  dataChannel = pc.createDataChannel('messageChannel');
+
+  // Handle messages received on the data channel
+  dataChannel.onmessage = (event) => {
+    console.log('Message received: ', event.data);
+    showNotification(event.data);  // Display the received message
+  };
+
+  // Handle open state of the data channel
+  dataChannel.onopen = () => {
+    console.log('Data channel is open');
+  };
+
+  // Handle error in the data channel
+  dataChannel.onerror = (error) => {
+    console.error('Data channel error:', error);
+  };
+
+  // Handle close event of the data channel
+  dataChannel.onclose = () => {
+    console.log('Data channel is closed');
+  };
+}
+
+// Send message function
+function sendMessage(message) {
+  if (dataChannel && dataChannel.readyState === 'open') {
+    dataChannel.send(message);  // Send the message through the data channel
+    console.log('Message sent: ', message);
+  } else {
+    console.log('Data channel is not open');
+  }
+}
+
+// Function to display notifications
+function showNotification(message) {
+  const notificationContainer = document.getElementById('notificationContainer');
+  notificationContainer.textContent = message;
+  notificationContainer.style.display = 'block';
+
+  // Hide notification after 5 seconds
+  setTimeout(() => {
+    notificationContainer.style.display = 'none';
+  }, 5000);
+}
+
 
 // HTML elements
 const webcamButton = document.getElementById('webcamButton');
@@ -129,21 +171,6 @@ callButton.onclick = async () => {
     }
   };
 
-  // Create a Data Channel for messaging
-  dataChannel = pc.createDataChannel('messageChannel');
-  
-  // When the data channel opens, send a message
-  dataChannel.onopen = () => {
-    console.log('Data channel is open');
-    dataChannel.send('Call initiated');
-  };
-
-    // Send message to notify the remote user that the call is initiated
-    if (dataChannel) {
-      dataChannel.send('Call initiated');
-      showNotification('Call initiated'); // Show notification immediately on the local end
-    }  
-
   // Create the offer
   const offerDescription = await pc.createOffer();
 
@@ -175,6 +202,10 @@ callButton.onclick = async () => {
       }
     });
   });
+
+  createDataChannel();
+  // Send a message through the data channel to notify the callee
+  sendMessage('Call initiated');
 
   hangupButton.disabled = false;
 }
@@ -215,11 +246,6 @@ answerButton.onclick = async () => {
   // Set the local description (the answer) and send it back to Peer A
   setLocalDescriptionSafely(answerDescription);
   
-   // Send message to notify the remote user that the call is initiated
-   if (dataChannel) {
-    dataChannel.send('New user is added');
-    showNotification('New user is added'); // Show notification immediately on the local end
-  }
   // Prepare the answer to send back
   const answer = {
     type: answerDescription.type,
@@ -250,6 +276,9 @@ answerButton.onclick = async () => {
   answerButton.disabled = true;
   webcamButton.disabled = true;
   hangupButton.disabled = false;
+  createDataChannel();  // Create the data channel on the answerer's side
+  sendMessage('Call accepted');  // Notify the caller
+
 };
 
 // Function to end the call
