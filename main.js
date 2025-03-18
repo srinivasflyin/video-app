@@ -18,12 +18,34 @@ const servers = {
   iceCandidatePoolSize: 10,
 };
 
+
+
+
+// Function to display notifications
+function showNotification(message) {
+  const notificationContainer = document.getElementById('notificationContainer');
+  notificationContainer.textContent = message;
+  notificationContainer.style.display = 'block';
+
+  // Hide notification after 5 seconds
+  setTimeout(() => {
+    notificationContainer.style.display = 'none';
+  }, 5000);
+}
+
+
 // Global State
 let pc = new RTCPeerConnection(servers);
 let localStream = null;
 let remoteStream = null;
 let meetingId = '';
 let dataChannel = null; // Data channel for messaging
+
+// Listen for incoming messages on the data channel
+dataChannel.onmessage = (event) => {
+  console.log('Message from remote: ', event.data);
+  showNotification(event.data);  // Display the received message in the notification container
+};
 
 // HTML elements
 const webcamButton = document.getElementById('webcamButton');
@@ -116,10 +138,11 @@ callButton.onclick = async () => {
     dataChannel.send('Call initiated');
   };
 
-  // Listen for incoming messages on the data channel
-  dataChannel.onmessage = (event) => {
-    console.log('Message from remote: ', event.data);
-  };
+    // Send message to notify the remote user that the call is initiated
+    if (dataChannel) {
+      dataChannel.send('Call initiated');
+      showNotification('Call initiated'); // Show notification immediately on the local end
+    }  
 
   // Create the offer
   const offerDescription = await pc.createOffer();
@@ -192,9 +215,11 @@ answerButton.onclick = async () => {
   // Set the local description (the answer) and send it back to Peer A
   setLocalDescriptionSafely(answerDescription);
   
-  // Send back a message to notify that the call is accepted
-  dataChannel.send('Call accepted');
-
+   // Send message to notify the remote user that the call is initiated
+   if (dataChannel) {
+    dataChannel.send('New user is added');
+    showNotification('New user is added'); // Show notification immediately on the local end
+  }
   // Prepare the answer to send back
   const answer = {
     type: answerDescription.type,
