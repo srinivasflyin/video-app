@@ -277,6 +277,129 @@ startBroadcastButton.onclick = startBroadcast;
 //         });
 //     });
 // }
+
+//partially working
+// async function joinBroadcast() {
+//     const viewerName = viewerNameInput.value;
+//     const enteredCallId = callIdInput.value;
+
+//     if (!enteredCallId || !viewerName) {
+//         alert('Please enter a valid Call ID and your name.');
+//         return;
+//     }
+
+//     if (enteredCallId === callId) {
+//         alert('You cannot join your own broadcast as a viewer.');
+//         return;
+//     }
+
+//     const callDocRef = doc(firestore, 'calls', enteredCallId);
+//     const callDocSnapshot = await getDoc(callDocRef);
+
+//     if (!callDocSnapshot.exists()) {
+//         alert('Invalid Call ID. Please enter a valid Call ID.');
+//         return;
+//     }
+
+//     const callData = callDocSnapshot.data();
+//     console.log('callData from Firestore:', callData);
+
+//     // Add the viewer to the viewerIds array
+//     await updateDoc(callDocRef, {
+//         viewerIds: arrayUnion(viewerName)  // Add the viewer's name to the viewerIds array
+//     });
+//     console.log(`Viewer ${viewerName} added to viewerIds`);
+
+//     // Create the peer connection for the viewer
+//     const peerConnection = new RTCPeerConnection();
+
+//     // Monitor ICE connection state
+//     peerConnection.oniceconnectionstatechange = () => {
+//         console.log('ICE connection state change: ', peerConnection.iceConnectionState);
+
+//         if (peerConnection.iceConnectionState === 'failed') {
+//             console.error('ICE connection failed. Attempting to reconnect...');
+//         } else if (peerConnection.iceConnectionState === 'connected') {
+//             console.log('ICE connection established successfully');
+//         }
+//     };
+
+//     const answerCandidatesRef = doc(firestore, 'calls', enteredCallId, 'answer', viewerName); // Save answer in the 'answers' subcollection    
+//     // Handle ICE candidates (for the viewer)
+//     peerConnection.onicecandidate = (event) => {
+//         if (event.candidate) {
+//             console.log('New ICE candidate (viewer): ', event.candidate);
+//             // If you're sending it somewhere like Firestore:
+//             addDoc(answerCandidatesRef, event.candidate.toJSON());
+//         } else {
+//             console.log('joinBroadcast: All ICE candidates have been gathered.');
+//         }
+//     };
+
+//     // Handle the viewer's local stream (even if they are just watching)
+//     let localViewerStream;
+//     try {
+//         localViewerStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+//         const localViewerVideo = document.createElement('video');
+//         localViewerVideo.srcObject = localViewerStream;
+//         localViewerVideo.autoplay = true;
+//         localViewerVideo.playsInline = true;
+//         remoteVideosContainer.appendChild(localViewerVideo); // Add to remoteVideosContainer
+//     } catch (error) {
+//         console.error('Error accessing viewer local stream:', error);
+//     }
+
+//     // Handle the broadcaster's remote stream (added to the viewer's peer connection)
+//     peerConnection.ontrack = (event) => {
+//         console.log('Received remote track for viewer:', event.streams[0]);
+//         const remoteStream = event.streams[0];
+//         const remoteVideo = document.createElement('video');
+//         remoteVideo.srcObject = remoteStream;
+//         remoteVideo.autoplay = true;
+//         remoteVideo.playsInline = true;
+
+//         // Only add the remote video once
+//         if (!remoteVideosContainer.querySelector(`video[data-remote-id="${event.streams[0].id}"]`)) {
+//             remoteVideo.setAttribute('data-remote-id', event.streams[0].id);
+//             remoteVideosContainer.appendChild(remoteVideo); // Add remote stream to UI
+//         }
+//     };
+
+//     // Check if the offer exists from the broadcaster
+//     if (callData.offer) {
+//         const offerDescription = new RTCSessionDescription(callData.offer);
+//         await peerConnection.setRemoteDescription(offerDescription);
+//         console.log('Set remote description (offer) from broadcaster');
+
+//         // Create an answer to the broadcaster's offer
+//         const answerDescription = await peerConnection.createAnswer();
+//         await peerConnection.setLocalDescription(answerDescription);
+//         console.log('Created local answer for viewer');
+
+//         // Save the WebRTC answer in Firestore under the 'answer' document for this call
+//         const answerDocRef = doc(firestore, 'calls', enteredCallId, 'answer', viewerName); // Save answer in the 'answers' subcollection
+//         await setDoc(answerDocRef, {
+//             sdp: answerDescription.sdp,
+//             type: answerDescription.type
+//         });
+//         console.log('Answer sent to Firestore');
+//     } else {
+//         console.log('No offer found from the broadcaster.');
+//         alert('The broadcaster has not started the broadcast yet.');
+//     }
+
+//     // Listen for ICE candidates from the broadcaster
+//     const offerCandidatesRef = collection(callDocRef, 'offerCandidates');
+//     onSnapshot(offerCandidatesRef, (snapshot) => {
+//         snapshot.docChanges().forEach((change) => {
+//             if (change.type === 'added') {
+//                 const candidate = new RTCIceCandidate(change.doc.data());
+//                 peerConnection.addIceCandidate(candidate);
+//             }
+//         });
+//     });
+// }
+
 async function joinBroadcast() {
     const viewerName = viewerNameInput.value;
     const enteredCallId = callIdInput.value;
@@ -302,13 +425,12 @@ async function joinBroadcast() {
     const callData = callDocSnapshot.data();
     console.log('callData from Firestore:', callData);
 
-    // Add the viewer to the viewerIds array
+    // Add the viewer to the viewerIds array (use arrayUnion to prevent duplicates)
     await updateDoc(callDocRef, {
-        viewerIds: arrayUnion(viewerName)  // Add the viewer's name to the viewerIds array
+        viewerIds: arrayUnion(viewerName)  // This adds the viewer's name to the viewerIds array in Firestore
     });
     console.log(`Viewer ${viewerName} added to viewerIds`);
 
-    // Create the peer connection for the viewer
     const peerConnection = new RTCPeerConnection();
 
     // Monitor ICE connection state
@@ -322,12 +444,12 @@ async function joinBroadcast() {
         }
     };
 
-    const answerCandidatesRef = doc(firestore, 'calls', enteredCallId, 'answers', viewerName); // Save answer in the 'answers' subcollection    
     // Handle ICE candidates (for the viewer)
     peerConnection.onicecandidate = (event) => {
         if (event.candidate) {
             console.log('New ICE candidate (viewer): ', event.candidate);
-            // If you're sending it somewhere like Firestore:
+            // Send the ICE candidate to Firestore for the broadcaster to retrieve
+            const answerCandidatesRef = collection(callDocRef, 'answerCandidates');
             addDoc(answerCandidatesRef, event.candidate.toJSON());
         } else {
             console.log('joinBroadcast: All ICE candidates have been gathered.');
@@ -366,8 +488,8 @@ async function joinBroadcast() {
     // Check if the offer exists from the broadcaster
     if (callData.offer) {
         const offerDescription = new RTCSessionDescription(callData.offer);
+        console.log("Setting remote description for viewer...");
         await peerConnection.setRemoteDescription(offerDescription);
-        console.log('Set remote description (offer) from broadcaster');
 
         // Create an answer to the broadcaster's offer
         const answerDescription = await peerConnection.createAnswer();
@@ -386,13 +508,15 @@ async function joinBroadcast() {
         alert('The broadcaster has not started the broadcast yet.');
     }
 
-    // Listen for ICE candidates from the broadcaster
+    // Listen for ICE candidates from the broadcaster (offerers' candidates)
     const offerCandidatesRef = collection(callDocRef, 'offerCandidates');
     onSnapshot(offerCandidatesRef, (snapshot) => {
         snapshot.docChanges().forEach((change) => {
             if (change.type === 'added') {
                 const candidate = new RTCIceCandidate(change.doc.data());
-                peerConnection.addIceCandidate(candidate);
+                peerConnection.addIceCandidate(candidate).catch((error) => {
+                    console.error('Error adding ICE candidate:', error);
+                });
             }
         });
     });
@@ -532,7 +656,7 @@ function listenForViewerAnswer(peerConnection, viewerId) {
     const callDocRef = doc(firestore, 'calls', callId);
 
     // Listen for viewer's answer document changes
-    const answerRef = doc(callDocRef, 'answer');
+    const answerRef = doc(callDocRef, 'answer', viewerId);
     onSnapshot(answerRef, async (snapshot) => {
         const data = snapshot.data();
         if (data && data.sdp && data.type) {
