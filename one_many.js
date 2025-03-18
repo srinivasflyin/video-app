@@ -103,7 +103,7 @@ async function startBroadcast() {
             if (event.candidate) {
                 console.log('New ICE candidate: ', event.candidate);
                 // If you're sending it somewhere like Firestore:
-                // addDoc(answerCandidatesRef, event.candidate.toJSON());
+                addDoc(answerCandidatesRef, event.candidate.toJSON());
             } else {
                 console.log('All ICE candidates have been gathered.');
             }
@@ -126,7 +126,7 @@ async function startBroadcast() {
                 type: offerDescription.type,
             }
         });
-
+              console.log('updddddddddddddddddddddddddd');
         // Listen for viewers joining
         listenForViewers(peerConnection);
 
@@ -141,29 +141,36 @@ startBroadcastButton.onclick = startBroadcast;
 function listenForViewers(peerConnection) {
     const callDocRef = doc(firestore, 'calls', callId);
     const offerCandidatesRef = collection(callDocRef, 'offerCandidates');
-
+    
+    // First, listen for the call document changes
     onSnapshot(callDocRef, async (snapshot) => {
-        console.log('333333333333333333333333333333333', snapshot.data());
+        console.log('callDocRef data:', snapshot.data());
         const data = snapshot.data();
-        if (data) {
 
+        if (data) {
             if (data.broadcasterName) {
                 broadcasterNameDisplay.innerText = data.broadcasterName;
             }
 
-            // Listen for ICE candidates from viewers
-            onSnapshot(offerCandidatesRef, (snapshot) => {
-                console.log('ggggggggggggggggggggggggggggggggggggggggggg', snapshot.docChanges());
-                snapshot.docChanges().forEach((change) => {
-                    if (change.type === 'added') {
-                        const candidate = new RTCIceCandidate(change.doc.data());
-                        peerConnection.addIceCandidate(candidate);
-                    }
+            // If we haven't already attached the ICE candidates listener, do it now
+            // You only need to do this once, so check if it's already set
+            if (!window.iceCandidatesListenerSet) {
+                window.iceCandidatesListenerSet = true;
+
+                onSnapshot(offerCandidatesRef, (snapshot) => {
+                    console.log('ICE candidate changes:', snapshot.docChanges());
+                    snapshot.docChanges().forEach((change) => {
+                        if (change.type === 'added') {
+                            const candidate = new RTCIceCandidate(change.doc.data());
+                            peerConnection.addIceCandidate(candidate);
+                        }
+                    });
                 });
-            });
+            }
         }
     });
 }
+
 
 
 async function createOffer(peerConnection) {
@@ -227,7 +234,7 @@ async function joinBroadcast() {
         if (event.candidate) {
             console.log('New ICE candidate: ', event.candidate);
             // If you're sending it somewhere like Firestore:
-            // addDoc(answerCandidatesRef, event.candidate.toJSON());
+            addDoc(answerCandidatesRef, event.candidate.toJSON());
         } else {
             console.log('All ICE candidates have been gathered.');
         }
