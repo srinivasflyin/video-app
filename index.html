@@ -48,7 +48,7 @@
         display: none;
       }
 
-      /* Login Popup Styles */
+      /* Fix for the login popup to be on top */
       .login-popup {
         position: fixed;
         top: 0;
@@ -59,21 +59,28 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        display: none; /* Initially hidden */
+        z-index: 9999; /* Ensure it's above everything else */
+        pointer-events: all; /* Allow interaction with the popup */
       }
 
+      /* Centering and styling the login form */
       .login-popup-content {
         background: white;
         padding: 20px;
         border-radius: 8px;
         width: 300px;
         text-align: center;
+        z-index: 10000; /* Ensuring the content is above the background */
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
       }
 
+      /* Input and button styles */
       input {
         width: 100%;
         padding: 10px;
         margin: 10px 0;
+        border-radius: 5px;
+        border: 1px solid #ccc;
       }
 
       button {
@@ -82,6 +89,7 @@
         color: white;
         border: none;
         cursor: pointer;
+        border-radius: 5px;
       }
 
       button:hover {
@@ -90,8 +98,9 @@
 
       #errorMessage {
         color: red;
-        display: none;
+        display: none; /* Hide error initially */
       }
+
     </style>
   </head>
   <body>
@@ -109,10 +118,9 @@
       </div>
     </div>
 
-    <!-- Notification Container -->
     <div id="notificationContainer">
-      <p id="incomingCallMessage">Incoming Call...</p>
-      <button id="answerButton" disabled>Answer</button>
+      <p id= "incomingCallMessage"></p>
+      <button id="answerButton">Answer</button>
     </div>
 
     <div class="center-container">
@@ -137,6 +145,17 @@
       </div>
     </div>
 
-    <script type="module" src="./main.js"></script>
+    <script type="module">
+      // JavaScript to show the login popup
+      window.onload = () => {
+        const loginPopup = document.getElementById('loginPopup');
+        loginPopup.style.display = 'flex'; // Show the login popup when the page load
+      };
+    </script>
+    <script src="./main.js" type="module"></script>
   </body>
 </html>
+
+
+
+
