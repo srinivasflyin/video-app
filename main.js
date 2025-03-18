@@ -18,20 +18,6 @@ const servers = {
   iceCandidatePoolSize: 10,
 };
 
-
-// Function to display notifications
-function showNotification(message) {
-  const notificationContainer = document.getElementById('notificationContainer');
-  notificationContainer.textContent = message;
-  notificationContainer.style.display = 'block';
-
-  // Hide notification after 5 seconds
-  setTimeout(() => {
-    notificationContainer.style.display = 'none';
-  }, 5000);
-}
-
-
 // Global State
 let pc = new RTCPeerConnection(servers);
 let localStream = null;
@@ -245,7 +231,7 @@ answerButton.onclick = async () => {
 
   // Set the local description (the answer) and send it back to Peer A
   setLocalDescriptionSafely(answerDescription);
-  
+
   // Prepare the answer to send back
   const answer = {
     type: answerDescription.type,
