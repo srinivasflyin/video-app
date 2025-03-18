@@ -277,7 +277,6 @@ startBroadcastButton.onclick = startBroadcast;
 //         });
 //     });
 // }
-
 async function joinBroadcast() {
     const viewerName = viewerNameInput.value;
     const enteredCallId = callIdInput.value;
@@ -310,10 +309,8 @@ async function joinBroadcast() {
     peerConnection.oniceconnectionstatechange = () => {
         console.log('ICE connection state change: ', peerConnection.iceConnectionState);
 
-        // Handle reconnection or failure
         if (peerConnection.iceConnectionState === 'failed') {
             console.error('ICE connection failed. Attempting to reconnect...');
-            // Handle reconnection logic if needed or alert the user
         } else if (peerConnection.iceConnectionState === 'connected') {
             console.log('ICE connection established successfully');
         }
@@ -370,27 +367,17 @@ async function joinBroadcast() {
         await peerConnection.setLocalDescription(answerDescription);
         console.log('Created local answer for viewer');
 
-        // Save the WebRTC answer in Firestore
-        await updateDoc(callDocRef, {
-            answer: {
-                sdp: answerDescription.sdp,
-                type: answerDescription.type,
-            },
-            viewerName
+        // Save the WebRTC answer in Firestore under the 'answer' document for this call
+        const answerDocRef = doc(firestore, 'calls', enteredCallId, 'answers', viewerName); // Save answer in the 'answers' subcollection
+        await setDoc(answerDocRef, {
+            sdp: answerDescription.sdp,
+            type: answerDescription.type
         });
+        console.log('Answer sent to Firestore');
     } else {
         console.log('No offer found from the broadcaster.');
         alert('The broadcaster has not started the broadcast yet.');
     }
-
-    const answerCandidatesRef = collection(callDocRef, 'answerCandidates');
-
-    // Send ICE candidates to Firestore from the viewer's side
-    peerConnection.onicecandidate = (event) => {
-        if (event.candidate) {
-            addDoc(answerCandidatesRef, event.candidate.toJSON());
-        }
-    };
 
     // Listen for ICE candidates from the broadcaster
     const offerCandidatesRef = collection(callDocRef, 'offerCandidates');
@@ -473,7 +460,7 @@ async function startBroadcast() {
 
 
 // Listen for viewers joining
-function listenForViewers(peerConnection) {
+function listenForViewers() {
     const callDocRef = doc(firestore, 'calls', callId);
     const offerCandidatesRef = collection(callDocRef, 'offerCandidates');
     
