@@ -27,38 +27,52 @@ let dataChannel = null; // Data channel for messaging
 
 // Create the data channel and set up the message sending/receiving logic
 function createDataChannel() {
-  // Create the data channel for sending and receiving messages
-  dataChannel = pc.createDataChannel('messageChannel');
+  console.log('fffffffffffffffff', pc.connectionState);
+  // Ensure that the peer connection is established and ready
+  if (pc.connectionState === 'connected' || pc.connectionState === 'new') {
+    // Create the data channel for sending and receiving messages
+    dataChannel = pc.createDataChannel('messageChannel');
 
-  // Handle messages received on the data channel
-  dataChannel.onmessage = (event) => {
-    console.log('Message received: ', event.data);
-    showNotification(event.data);  // Display the received message
-  };
+    // Handle messages received on the data channel
+    dataChannel.onmessage = (event) => {
+      console.log('Message received: ', event.data);
+      showNotification(event.data);  // Display the received message
+    };
 
-  // Handle open state of the data channel
-  dataChannel.onopen = () => {
-    console.log('Data channel is open');
-  };
+    // Handle open state of the data channel
+    dataChannel.onopen = () => {
+      console.log('Data channel is open');
+    };
 
-  // Handle error in the data channel
-  dataChannel.onerror = (error) => {
-    console.error('Data channel error:', error);
-  };
+    // Handle error in the data channel
+    dataChannel.onerror = (error) => {
+      console.error('Data channel error:', error);
+    };
 
-  // Handle close event of the data channel
-  dataChannel.onclose = () => {
-    console.log('Data channel is closed');
-  };
+    // Handle close event of the data channel
+    dataChannel.onclose = () => {
+      console.log('Data channel is closed');
+    };
+  }  else {
+    console.log('PeerConnection is not in a state where dataChannel can be created yet');
+  }
 }
 
-// Send message function
+
+// Function to send a message via the data channel
 function sendMessage(message) {
+  // Check if the data channel is open before sending the message
   if (dataChannel && dataChannel.readyState === 'open') {
     dataChannel.send(message);  // Send the message through the data channel
     console.log('Message sent: ', message);
   } else {
-    console.log('Data channel is not open');
+    console.log('Data channel is not open yet, waiting...');
+    // If the data channel is not open yet, wait for the `onopen` event
+    dataChannel.onopen = () => {
+      console.log('Data channel is open, sending message now');
+      dataChannel.send(message);
+      console.log('Message sent: ', message);
+    };
   }
 }
 
