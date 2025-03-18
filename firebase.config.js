@@ -5,12 +5,12 @@ import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
   // Your Firebase config here
-  apiKey: "AIzaSyCxjoy2q2dGt6bP-2TPhIwiHXsK4UPugJQ",
-  authDomain: "test-video-12a1c.firebaseapp.com",
-  projectId: "test-video-12a1c",
-  storageBucket: "test-video-12a1c.firebasestorage.app",
-  messagingSenderId: "310458221430",
-  appId: "1:310458221430:web:e494c62857c470f19b3057"
+  apiKey: "AIzaSyB9zWlBsV5EMCiB-pFD6S300QZWdcStXQQ",
+  authDomain: "test-video-a6aea.firebaseapp.com",
+  projectId: "test-video-a6aea",
+  storageBucket: "test-video-a6aea.firebasestorage.app",
+  messagingSenderId: "376578543344",
+  appId: "1:376578543344:web:e0ff4a870fcb60d80cfc35"
 };
 
 // Initialize Firebase app if it's not already initialized
