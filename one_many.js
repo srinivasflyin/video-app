@@ -302,6 +302,12 @@ async function joinBroadcast() {
     const callData = callDocSnapshot.data();
     console.log('callData from Firestore:', callData);
 
+    // Add the viewer to the viewerIds array
+    await updateDoc(callDocRef, {
+        viewerIds: arrayUnion(viewerName)  // Add the viewer's name to the viewerIds array
+    });
+    console.log(`Viewer ${viewerName} added to viewerIds`);
+
     // Create the peer connection for the viewer
     const peerConnection = new RTCPeerConnection();
 
@@ -316,6 +322,7 @@ async function joinBroadcast() {
         }
     };
 
+    const answerCandidatesRef = doc(firestore, 'calls', enteredCallId, 'answers', viewerName); // Save answer in the 'answers' subcollection    
     // Handle ICE candidates (for the viewer)
     peerConnection.onicecandidate = (event) => {
         if (event.candidate) {
@@ -390,6 +397,7 @@ async function joinBroadcast() {
         });
     });
 }
+
 
 
 async function startBroadcast() {
