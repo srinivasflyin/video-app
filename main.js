@@ -38,7 +38,7 @@ const servers = {
 let pc = new RTCPeerConnection(servers);
 let localStream = null;
 let remoteStream = null;
-
+let meetingId = '';
 // HTML elements
 const webcamButton = document.getElementById('webcamButton');
 const webcamVideo = document.getElementById('webcamVideo');
@@ -47,6 +47,13 @@ const callInput = document.getElementById('callInput');
 const answerButton = document.getElementById('answerButton');
 const remoteVideo = document.getElementById('remoteVideo');
 const hangupButton = document.getElementById('hangupButton');
+
+
+// Generate a unique call ID
+function generateUniqueCallId() {
+  return Math.random().toString(36).substr(2, 9); // Generate a random 9-character call ID
+}
+
 
 function setLocalDescriptionSafely(description) {
   console.log("Setting local description:", description, pc.signalingState);
@@ -108,7 +115,8 @@ webcamButton.onclick = async () => {
 callButton.onclick = async () => {
   console.log('gggggggggggggggggggggggggggggggggggggggggggggg');
   // Generate a new document reference in the 'calls' collection
-  const callDocRef = doc(collection(firestore, 'calls')); // New doc in 'calls' collection
+  meetingId = generateUniqueCallId();
+  const callDocRef = doc(collection(firestore, 'calls', meetingId)); // New doc in 'calls' collection
   const offerCandidatesRef = collection(firestore, 'calls', callDocRef.id, 'offerCandidates');
   const answerCandidatesRef = collection(firestore, 'calls', callDocRef.id, 'answerCandidates');
 
@@ -124,35 +132,35 @@ callButton.onclick = async () => {
   };
 
   // // Create the offer
-  // const offerDescription = await pc.createOffer();
-  // setLocalDescriptionSafely(offerDescription);
+  const offerDescription = await pc.createOffer();
+  setLocalDescriptionSafely(offerDescription);
 
-  // const offer = {
-  //   sdp: offerDescription.sdp,
-  //   type: offerDescription.type,
-  // };
+  const offer = {
+    sdp: offerDescription.sdp,
+    type: offerDescription.type,
+  };
 
   // // Set the offer in Firestore (create the document with offer data)
-  // await setDoc(callDocRef, { offer });
+  await setDoc(callDocRef, { offer });
 
   // // Listen for remote answer
-  // onSnapshot(callDocRef, (snapshot) => {
-  //   const data = snapshot.data();
-  //   if (!pc.currentRemoteDescription && data?.answer) {
-  //     const answerDescription = new RTCSessionDescription(data.answer);
-  //     pc.setRemoteDescription(answerDescription);
-  //   }
-  // });
+  onSnapshot(callDocRef, (snapshot) => {
+    const data = snapshot.data();
+    if (!pc.currentRemoteDescription && data?.answer) {
+      const answerDescription = new RTCSessionDescription(data.answer);
+      pc.setRemoteDescription(answerDescription);
+    }
+  });
 
   // // When answered, add candidates to the peer connection
-  // onSnapshot(answerCandidatesRef, (snapshot) => {
-  //   snapshot.docChanges().forEach((change) => {
-  //     if (change.type === 'added') {
-  //       const candidate = new RTCIceCandidate(change.doc.data());
-  //       pc.addIceCandidate(candidate);
-  //     }
-  //   });
-  // });
+  onSnapshot(answerCandidatesRef, (snapshot) => {
+    snapshot.docChanges().forEach((change) => {
+      if (change.type === 'added') {
+        const candidate = new RTCIceCandidate(change.doc.data());
+        pc.addIceCandidate(candidate);
+      }
+    });
+  });
 
 }
 
@@ -162,41 +170,17 @@ callButton.onclick = async () => {
 
 answerButton.onclick = async () => {
   const callId = callInput.value;
+  if (callId === '') {
+    alert('Please enter a valid call ID.');
+  }
 
+  if (callId === meetingId) {
+    alert('Please enter a valid call ID.');
+  }
   // Reference the specific call document
   const callDocRef = doc(firestore, 'calls', callId);
   const answerCandidatesRef = collection(callDocRef, 'answerCandidates');
   const offerCandidatesRef = collection(callDocRef, 'offerCandidates');
-  // Create the offer
-  const offerDescription = await pc.createOffer();
-  setLocalDescriptionSafely(offerDescription);
-
-  const offer = {
-    sdp: offerDescription.sdp,
-    type: offerDescription.type,
-  };
-
-  // Set the offer in Firestore (create the document with offer data)
-  await setDoc(callDocRef, { offer });
-
-  // Listen for remote answer
-  onSnapshot(callDocRef, (snapshot) => {
-    const data = snapshot.data();
-    if (!pc.currentRemoteDescription && data?.answer) {
-      const answerDescription = new RTCSessionDescription(data.answer);
-      pc.setRemoteDescription(answerDescription);
-    }
-  });
-
-  // When answered, add candidates to the peer connection
-  onSnapshot(answerCandidatesRef, (snapshot) => {
-    snapshot.docChanges().forEach((change) => {
-      if (change.type === 'added') {
-        const candidate = new RTCIceCandidate(change.doc.data());
-        pc.addIceCandidate(candidate);
-      }
-    });
-  });
 
   // Get candidates for the callee (answerer), save to Firestore
   pc.onicecandidate = (event) => {
@@ -218,7 +202,7 @@ answerButton.onclick = async () => {
 
   // Set the local description (the answer) and send it back to Peer A
   setLocalDescriptionSafely(answerDescription);
-    console.log('ggggggggggggggggggggggggggggggggggg');
+  console.log('ggggggggggggggggggggggggggggggggggg');
   // Prepare the answer to send back
   const answer = {
     type: answerDescription.type,
@@ -226,7 +210,7 @@ answerButton.onclick = async () => {
   };
 
   // Send the answer back to Peer A through the signaling server
-  // await updateDoc(callDocRef, { answer });
+  await updateDoc(callDocRef, { answer });
 
   // Listen for offer candidates and add them to the peer connection
   onSnapshot(offerCandidatesRef, (snapshot) => {
