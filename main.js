@@ -109,11 +109,10 @@ webcamButton.onclick = async () => {
 
   callButton.disabled = false;
   answerButton.disabled = false;
-  webcamButton.disabled = true;
+  webcamButton.disabled = false;
 };
 
 callButton.onclick = async () => {
-  console.log('gggggggggggggggggggggggggggggggggggggggggggggg');
   // Generate a new document reference in the 'calls' collection
   meetingId = generateUniqueCallId();
   const callDocRef = doc(firestore, 'calls', meetingId);
@@ -250,11 +249,6 @@ hangupButton.onclick = async () => {
   if (remoteStream) {
     remoteStream.getTracks().forEach(track => track.stop());
   }
-
-  // Clear the video elements
-  webcamVideo.srcObject = null;
-  remoteVideo.srcObject = null;
-
 
   // Close the RTCPeerConnection
   if (pc) {
