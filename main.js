@@ -68,7 +68,7 @@ async function initiateCall(currentUserId, targetUserId) {
   // Reference to the Firestore document for this specific call
   const callDocRef = doc(firestore, 'calls', currentCallId); // Firestore document for this call
   const offerCandidatesRef = collection(callDocRef, 'offerCandidates');
-
+  const answerCandidatesRef = collection(callDocRef, 'answerCandidates');
   // Set up ICE candidates for the call
   pc.onicecandidate = (event) => {
     if (event.candidate) {
@@ -84,6 +84,7 @@ async function initiateCall(currentUserId, targetUserId) {
     sdp: offerDescription.sdp,
     type: offerDescription.type,
   };
+
   setLocalDescriptionSafely(offerDescription);
 
   await setDoc(callDocRef, { offer, callerId: currentUserId });
