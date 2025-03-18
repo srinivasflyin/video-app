@@ -1,6 +1,6 @@
 import './style.css';
 import { firestore } from './firebase.config';
-import { collection, getDocs, doc, setDoc, onSnapshot, updateDoc, query, where ,addDoc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, setDoc, onSnapshot, updateDoc, query, where, addDoc, getDoc } from 'firebase/firestore';
 
 const servers = {
   iceServers: [
@@ -46,7 +46,7 @@ async function getUsers() {
 
   querySnapshot.forEach(doc => {
     const userData = doc.data();
-    
+
     // Skip the current user from the list
     if (doc.id === currentUserId) {
       return; // Don't add the current user to the list
@@ -69,6 +69,13 @@ async function initiateCall(currentUserId, targetUserId) {
   const callDocRef = doc(firestore, 'calls', currentCallId); // Firestore document for this call
   const offerCandidatesRef = collection(callDocRef, 'offerCandidates');
 
+  // Set up ICE candidates for the call
+  pc.onicecandidate = (event) => {
+    if (event.candidate) {
+      addDoc(offerCandidatesRef, event.candidate.toJSON());
+    }
+  };
+
   // Store the call document with the offer information
   const offerDescription = await pc.createOffer();
 
@@ -77,20 +84,34 @@ async function initiateCall(currentUserId, targetUserId) {
     sdp: offerDescription.sdp,
     type: offerDescription.type,
   };
+  setLocalDescriptionSafely(offerDescription);
+
   await setDoc(callDocRef, { offer, callerId: currentUserId });
 
-  // Set up ICE candidates for the call
-  pc.onicecandidate = (event) => {
-    if (event.candidate) {
-      addDoc(offerCandidatesRef, event.candidate.toJSON());
+  // // Listen for remote answer
+  onSnapshot(callDocRef, (snapshot) => {
+    const data = snapshot.data();
+    if (!pc.currentRemoteDescription && data?.answer) {
+      const answerDescription = new RTCSessionDescription(data.answer);
+      pc.setRemoteDescription(answerDescription);
     }
-  };
+  });
 
+  // // // When answered, add candidates to the peer connection
+  onSnapshot(answerCandidatesRef, (snapshot) => {
+    snapshot.docChanges().forEach((change) => {
+      if (change.type === 'added') {
+        const candidate = new RTCIceCandidate(change.doc.data());
+        pc.addIceCandidate(candidate);
+      }
+    });
+  });
   // Notify the callee about the incoming call (via Firestore)
   sendMessageToCallee(targetUserId, currentUserId, currentCallId);  // Notify target user about the call
 
   console.log(`Call initiated with call ID: ${currentCallId}`);
 }
+
 
 function sendMessageToCallee(targetUserId, currentUserId, currentCallId) {
   console.log('hhhhhhhhhhhhhhh', targetUserId, currentCallId, currentCallId);
@@ -109,11 +130,13 @@ function sendMessageToCallee(targetUserId, currentUserId, currentCallId) {
 // Set local media
 async function setupLocalMedia() {
   localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-  localVideo.srcObject = localStream;
-
+  remoteStream = new MediaStream();
   localStream.getTracks().forEach((track) => {
     pc.addTrack(track, localStream);
   });
+
+  localVideo.srcObject = localStream;
+  remoteVideo.srcObject = remoteStream;
 }
 
 // Create data channel
@@ -190,7 +213,7 @@ function showIncomingCallNotification(callerId, callId) {
   const notificationElement = document.getElementById('notificationContainer');
   notificationElement.style.display = 'block';
   const incomingCallMessageElement = document.getElementById('incomingCallMessage');
-  incomingCallMessageElement.textContent  = `Incoming call from ${callerId}`;
+  incomingCallMessageElement.textContent = `Incoming call from ${callerId}`;
   const answerButton = document.getElementById('answerButton');
   console.log('hhhhhhhhhhhhh', answerButton);
   answerButton.disabled = false;
@@ -202,17 +225,33 @@ function showIncomingCallNotification(callerId, callId) {
 async function answerCall(callId) {
   const callDocRef = doc(firestore, 'calls', callId);
   const offerCandidatesRef = collection(callDocRef, 'offerCandidates');
+  const answerCandidatesRef = collection(callDocRef, 'answerCandidates');
 
   const callDocSnap = await getDoc(callDocRef);
   const callData = callDocSnap.data();
   const offerDescription = callData.offer;
 
+  // Get candidates for the callee (answerer), save to Firestore
+  pc.onicecandidate = (event) => {
+    if (event.candidate) {
+      addDoc(answerCandidatesRef, event.candidate.toJSON());
+    }
+  };
   // Set the remote description (offer) from the caller
   await pc.setRemoteDescription(new RTCSessionDescription(offerDescription));
 
   // Create the answer and send it back to Firestore
   const answerDescription = await pc.createAnswer();
   setLocalDescriptionSafely(answerDescription);
+   
+    // Prepare the answer to send back
+    const answer = {
+      type: answerDescription.type,
+      sdp: answerDescription.sdp,
+    };
+  
+    // Send the answer back to Peer A through the signaling server
+    await updateDoc(callDocRef, { answer });
 
   // Send the answer back to Firestore
   await updateDoc(callDocRef, { answer: answerDescription });
@@ -307,7 +346,7 @@ function setLocalDescriptionSafely(description) {
         console.log("Local description set successfully.");
       })
       .catch((error) => {
-        console.error( `Error setting local description:${pc.signalingState}, ${error}`);
+        console.error(`Error setting local description:${pc.signalingState}, ${error}`);
       });
   } else if (pc.signalingState === 'have-remote-offer' && description.type === 'answer') {
     // It's safe to set an answer if the signaling state is 'have-remote-offer'
