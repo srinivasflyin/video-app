@@ -48,9 +48,6 @@ async function createOffer(peerConnection) {
         await peerConnection.setLocalDescription(offerDescription);
 
         console.log('Created offer and set local description.');
-
-        // Optional: Log the local description
-        console.log('Local Description: ', peerConnection.localDescription);
         return offerDescription;
     } catch (error) {
         console.error('Error creating offer: ', error);
@@ -84,15 +81,12 @@ async function startBroadcast() {
 
         // Create and send the WebRTC offer
         const peerConnection = new RTCPeerConnection();
-        // Create the peer connection for the viewer
-        // Monitor ICE connection state
+        
         peerConnection.oniceconnectionstatechange = () => {
             console.log('ICE connection state change: ', peerConnection.iceConnectionState);
 
-            // Check for specific ICE connection states
             if (peerConnection.iceConnectionState === 'failed') {
                 console.error('ICE connection failed. Attempting to reconnect...');
-                // Handle reconnection logic if needed or alert the user
             }
             else if (peerConnection.iceConnectionState === 'connected') {
                 console.log('ICE connection established successfully');
@@ -103,22 +97,17 @@ async function startBroadcast() {
         peerConnection.onicecandidate = (event) => {
             if (event.candidate) {
                 console.log('New ICE candidate: ', event.candidate);
-                // If you're sending it somewhere like Firestore:
-                addDoc(answerCandidatesRef, event.candidate.toJSON());
+                // Send ICE candidate to Firestore
+                addDoc(callDocRef, event.candidate.toJSON());
             } else {
-                console.log('All ICE candidates have been gathered.');
+                console.log('startBroadcast: All ICE candidates have been gathered.');
             }
         };
 
-        // Call this function to start the process
         const offerDescription = await createOffer(peerConnection);
-
         localStream.getTracks().forEach((track) => {
             peerConnection.addTrack(track, localStream);
         });
-
-        // const offerDescription = await peerConnection.createOffer();
-        // await peerConnection.setLocalDescription(offerDescription);
 
         // Save the WebRTC offer in Firestore
         await updateDoc(callDocRef, {
@@ -127,7 +116,9 @@ async function startBroadcast() {
                 type: offerDescription.type,
             }
         });
-              console.log('updddddddddddddddddddddddddd');
+
+        console.log('Offer sent to Firestore.');
+
         // Listen for viewers joining
         listenForViewers(peerConnection);
 
@@ -142,10 +133,8 @@ startBroadcastButton.onclick = startBroadcast;
 function listenForViewers(peerConnection) {
     const callDocRef = doc(firestore, 'calls', callId);
     const offerCandidatesRef = collection(callDocRef, 'offerCandidates');
-    
-    // First, listen for the call document changes
+
     onSnapshot(callDocRef, async (snapshot) => {
-        console.log('callDocRef data:', snapshot.data());
         const data = snapshot.data();
 
         if (data) {
@@ -153,13 +142,22 @@ function listenForViewers(peerConnection) {
                 broadcasterNameDisplay.innerText = data.broadcasterName;
             }
 
-            // If we haven't already attached the ICE candidates listener, do it now
-            // You only need to do this once, so check if it's already set
-            if (!window.iceCandidatesListenerSet) {
-                window.iceCandidatesListenerSet = true;
+            if (data.offer) {
+                const offerDescription = new RTCSessionDescription(data.offer);
+                await peerConnection.setRemoteDescription(offerDescription);
 
+                const answerDescription = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answerDescription);
+
+                await updateDoc(callDocRef, {
+                    answer: {
+                        sdp: answerDescription.sdp,
+                        type: answerDescription.type,
+                    },
+                });
+
+                // Listen for ICE candidates from the broadcaster
                 onSnapshot(offerCandidatesRef, (snapshot) => {
-                    console.log('ICE candidate changes:', snapshot.docChanges());
                     snapshot.docChanges().forEach((change) => {
                         if (change.type === 'added') {
                             const candidate = new RTCIceCandidate(change.doc.data());
@@ -196,18 +194,14 @@ async function joinBroadcast() {
     }
 
     const callData = callDocSnapshot.data();
-    console.log('callDataffffffffffff', callData);
-    // Create the peer connection for the viewer
+
     const peerConnection = new RTCPeerConnection();
 
-    // Monitor ICE connection state
     peerConnection.oniceconnectionstatechange = () => {
         console.log('ICE connection state change: ', peerConnection.iceConnectionState);
 
-        // Check for specific ICE connection states
         if (peerConnection.iceConnectionState === 'failed') {
             console.error('ICE connection failed. Attempting to reconnect...');
-            // Handle reconnection logic if needed or alert the user
         }
         else if (peerConnection.iceConnectionState === 'connected') {
             console.log('ICE connection established successfully');
@@ -218,43 +212,9 @@ async function joinBroadcast() {
     peerConnection.onicecandidate = (event) => {
         if (event.candidate) {
             console.log('New ICE candidate: ', event.candidate);
-            // If you're sending it somewhere like Firestore:
-            addDoc(answerCandidatesRef, event.candidate.toJSON());
+            addDoc(callDocRef, event.candidate.toJSON());
         } else {
-            console.log('All ICE candidates have been gathered.');
-        }
-    };
-
-    // Example of calling createOffer and setting local description (this triggers candidate gathering)
-
-    // Call this function to start the process
-    await createOffer(peerConnection);
-
-    // Handle the viewer's local stream (even if they are just watching)
-    let localViewerStream;
-    try {
-        localViewerStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        const localViewerVideo = document.createElement('video');
-        localViewerVideo.srcObject = localViewerStream;
-        localViewerVideo.autoplay = true;
-        localViewerVideo.playsInline = true;
-        remoteVideosContainer.appendChild(localViewerVideo); // Add to remoteVideosContainer
-    } catch (error) {
-        console.error('Error accessing viewer local stream:', error);
-    }
-
-    peerConnection.ontrack = (event) => {
-        console.log('000000000000000000000000000000000000000000000');
-        const remoteStream = event.streams[0];
-        const remoteVideo = document.createElement('video');
-        remoteVideo.srcObject = remoteStream;
-        remoteVideo.autoplay = true;
-        remoteVideo.playsInline = true;
-
-        // Only add the remote video once
-        if (!remoteVideosContainer.querySelector(`video[data-remote-id="${event.streams[0].id}"]`)) {
-            remoteVideo.setAttribute('data-remote-id', event.streams[0].id);
-            remoteVideosContainer.appendChild(remoteVideo); // Add remote stream to UI
+            console.log('joinBroadcast: All ICE candidates have been gathered.');
         }
     };
 
@@ -276,12 +236,31 @@ async function joinBroadcast() {
         });
     }
 
-    const answerCandidatesRef = collection(callDocRef, 'answerCandidates');
+    // Handle the viewer's local stream (even if they are just watching)
+    let localViewerStream;
+    try {
+        localViewerStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        const localViewerVideo = document.createElement('video');
+        localViewerVideo.srcObject = localViewerStream;
+        localViewerVideo.autoplay = true;
+        localViewerVideo.playsInline = true;
+        remoteVideosContainer.appendChild(localViewerVideo); // Add to remoteVideosContainer
+    } catch (error) {
+        console.error('Error accessing viewer local stream:', error);
+    }
 
-    // Send ICE candidates to Firestore
-    peerConnection.onicecandidate = (event) => {
-        if (event.candidate) {
-            addDoc(answerCandidatesRef, event.candidate.toJSON());
+    // When the viewer receives remote streams, it should be added to the remote video container
+    peerConnection.ontrack = (event) => {
+        const remoteStream = event.streams[0];
+        const remoteVideo = document.createElement('video');
+        remoteVideo.srcObject = remoteStream;
+        remoteVideo.autoplay = true;
+        remoteVideo.playsInline = true;
+
+        // Only add the remote video once
+        if (!remoteVideosContainer.querySelector(`video[data-remote-id="${event.streams[0].id}"]`)) {
+            remoteVideo.setAttribute('data-remote-id', event.streams[0].id);
+            remoteVideosContainer.appendChild(remoteVideo); // Add remote stream to UI
         }
     };
 
