@@ -116,9 +116,9 @@ callButton.onclick = async () => {
   console.log('gggggggggggggggggggggggggggggggggggggggggggggg');
   // Generate a new document reference in the 'calls' collection
   meetingId = generateUniqueCallId();
-  const callDocRef = doc(collection(firestore, 'calls', meetingId)); // New doc in 'calls' collection
-  const offerCandidatesRef = collection(firestore, 'calls', callDocRef.id, 'offerCandidates');
-  const answerCandidatesRef = collection(firestore, 'calls', callDocRef.id, 'answerCandidates');
+  const callDocRef = doc(firestore, 'calls', meetingId);
+ const offerCandidatesRef = collection(callDocRef, 'offerCandidates');
+  const answerCandidatesRef = collection(callDocRef, 'answerCandidates');
 
   // Display the call document ID in the input
   callInput.value = callDocRef.id;
@@ -131,14 +131,16 @@ callButton.onclick = async () => {
     }
   };
 
+
   // // Create the offer
   const offerDescription = await pc.createOffer();
-  setLocalDescriptionSafely(offerDescription);
 
   const offer = {
     sdp: offerDescription.sdp,
     type: offerDescription.type,
   };
+
+  setLocalDescriptionSafely(offerDescription);
 
   // // Set the offer in Firestore (create the document with offer data)
   await setDoc(callDocRef, { offer });
@@ -152,7 +154,7 @@ callButton.onclick = async () => {
     }
   });
 
-  // // When answered, add candidates to the peer connection
+  // // // When answered, add candidates to the peer connection
   onSnapshot(answerCandidatesRef, (snapshot) => {
     snapshot.docChanges().forEach((change) => {
       if (change.type === 'added') {
