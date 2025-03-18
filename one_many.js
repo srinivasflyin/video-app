@@ -171,22 +171,6 @@ function listenForViewers(peerConnection) {
     });
 }
 
-
-
-async function createOffer(peerConnection) {
-    try {
-        const offerDescription = await peerConnection.createOffer();
-        await peerConnection.setLocalDescription(offerDescription);
-
-        console.log('Created offer and set local description.');
-
-        // Optional: Log the local description
-        console.log('Local Description: ', peerConnection.localDescription);
-    } catch (error) {
-        console.error('Error creating offer: ', error);
-    }
-}
-
 // Viewer (Remote participant) joins the broadcast
 async function joinBroadcast() {
     const viewerName = viewerNameInput.value;
