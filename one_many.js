@@ -42,7 +42,7 @@ function generateUniqueCallId() {
 
 
 // Example of calling createOffer and setting local description (this triggers candidate gathering)
-async function createOffer() {
+async function createOffer(peerConnection) {
     try {
         const offerDescription = await peerConnection.createOffer();
         await peerConnection.setLocalDescription(offerDescription);
@@ -51,6 +51,7 @@ async function createOffer() {
 
         // Optional: Log the local description
         console.log('Local Description: ', peerConnection.localDescription);
+        return offerDescription;
     } catch (error) {
         console.error('Error creating offer: ', error);
     }
@@ -110,7 +111,7 @@ async function startBroadcast() {
         };
 
         // Call this function to start the process
-        createOffer(peerConnection);
+        const offerDescription = await createOffer(peerConnection);
 
         localStream.getTracks().forEach((track) => {
             peerConnection.addTrack(track, localStream);
@@ -227,7 +228,7 @@ async function joinBroadcast() {
     // Example of calling createOffer and setting local description (this triggers candidate gathering)
 
     // Call this function to start the process
-    createOffer(peerConnection);
+    await createOffer(peerConnection);
 
     // Handle the viewer's local stream (even if they are just watching)
     let localViewerStream;
