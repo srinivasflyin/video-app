@@ -169,7 +169,6 @@ hangupButton.onclick = () => {
 };
 
 
-
 async function listenForIncomingCall(targetUserId) {
   // Listen for incoming calls from the 'notifications' collection
   const notificationsRef = collection(firestore, 'notifications', targetUserId, 'incomingCalls');
@@ -202,7 +201,6 @@ function showIncomingCallNotification(callerId, callId) {
 
 async function answerCall(callId) {
   const callDocRef = doc(firestore, 'calls', callId);
-  const answerCandidatesRef = collection(callDocRef, 'answerCandidates');
   const offerCandidatesRef = collection(callDocRef, 'offerCandidates');
 
   const callDocSnap = await getDoc(callDocRef);
@@ -214,7 +212,7 @@ async function answerCall(callId) {
 
   // Create the answer and send it back to Firestore
   const answerDescription = await pc.createAnswer();
-  await setLocalDescriptionSafely(answerDescription);
+  setLocalDescriptionSafely(answerDescription);
 
   // Send the answer back to Firestore
   await updateDoc(callDocRef, { answer: answerDescription });
