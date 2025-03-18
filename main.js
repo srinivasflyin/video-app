@@ -109,7 +109,7 @@ webcamButton.onclick = async () => {
 
   callButton.disabled = false;
   answerButton.disabled = false;
-  webcamButton.disabled = false;
+  webcamButton.disabled = true;
 };
 
 callButton.onclick = async () => {
@@ -162,7 +162,7 @@ callButton.onclick = async () => {
       }
     });
   });
-
+  hangupButton.disabled = false;
 }
 
 
