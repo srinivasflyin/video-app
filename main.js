@@ -1,5 +1,4 @@
 import './style.css';
-
 import {
   updateDoc,
   collection,
@@ -11,25 +10,10 @@ import {
 } from "firebase/firestore";
 
 import { firestore } from "./firebase.config";
-// const firebaseConfig = {
-//   apiKey: "AIzaSyAPs_CgegiTL8V6DOtExxfl9Qz7hOKaqZw",
-//   authDomain: "test-firebase-fa21c.firebaseapp.com",
-//   projectId: "test-firebase-fa21c",
-//   storageBucket: "test-firebase-fa21c.firebasestorage.app",
-//   messagingSenderId: "1093304565669",
-//   appId: "1:1093304565669:web:c454fcc5651f6436c5324c"
-// };
-
-// if (!firebase.apps.length) {
-//   firebase.initializeApp(firebaseConfig);
-// }
-// const firestore = firebase.firestore();
 
 const servers = {
   iceServers: [
-    {
-      urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'],
-    },
+    { urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] },
   ],
   iceCandidatePoolSize: 10,
 };
@@ -39,6 +23,8 @@ let pc = new RTCPeerConnection(servers);
 let localStream = null;
 let remoteStream = null;
 let meetingId = '';
+let dataChannel = null; // Data channel for messaging
+
 // HTML elements
 const webcamButton = document.getElementById('webcamButton');
 const webcamVideo = document.getElementById('webcamVideo');
@@ -48,17 +34,14 @@ const answerButton = document.getElementById('answerButton');
 const remoteVideo = document.getElementById('remoteVideo');
 const hangupButton = document.getElementById('hangupButton');
 
-
 // Generate a unique call ID
 function generateUniqueCallId() {
   return Math.random().toString(36).substr(2, 9); // Generate a random 9-character call ID
 }
 
-
 function setLocalDescriptionSafely(description) {
   console.log("Setting local description:", description, pc.signalingState);
   if (pc.signalingState === 'stable') {
-    // It's safe to set an offer in 'stable' state
     pc.setLocalDescription(description)
       .then(() => {
         console.log("Local description set successfully.");
@@ -67,7 +50,6 @@ function setLocalDescriptionSafely(description) {
         console.error(`Error setting local description:${pc.signalingState}`, error);
       });
   } else if (pc.signalingState === 'have-remote-offer' && description.type === 'answer') {
-    // It's safe to set an answer if the signaling state is 'have-remote-offer'
     pc.setLocalDescription(description)
       .then(() => {
         console.log("Local answer set successfully.");
@@ -76,17 +58,13 @@ function setLocalDescriptionSafely(description) {
         console.error(`Error setting local answer:${pc.signalingState}`, error);
       });
   } else if (pc.signalingState === 'have-remote-offer' && description.type === 'offer') {
-    // Step 1: Set the remote description (offer)
     pc.setRemoteDescription(new RTCSessionDescription(description))
-
   } else {
     console.log(`Cannot set local description in current signaling state:${pc.signalingState}`, pc.signalingState);
   }
 }
 
-
 // 1. Setup media sources
-
 webcamButton.onclick = async () => {
   pc = new RTCPeerConnection(servers);
   localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
@@ -116,7 +94,7 @@ callButton.onclick = async () => {
   // Generate a new document reference in the 'calls' collection
   meetingId = generateUniqueCallId();
   const callDocRef = doc(firestore, 'calls', meetingId);
- const offerCandidatesRef = collection(callDocRef, 'offerCandidates');
+  const offerCandidatesRef = collection(callDocRef, 'offerCandidates');
   const answerCandidatesRef = collection(callDocRef, 'answerCandidates');
 
   // Display the call document ID in the input
@@ -125,13 +103,25 @@ callButton.onclick = async () => {
   // Get candidates for the caller, save to Firestore
   pc.onicecandidate = (event) => {
     if (event.candidate) {
-      // Add offer candidate to Firestore
       addDoc(offerCandidatesRef, event.candidate.toJSON());
     }
   };
 
+  // Create a Data Channel for messaging
+  dataChannel = pc.createDataChannel('messageChannel');
+  
+  // When the data channel opens, send a message
+  dataChannel.onopen = () => {
+    console.log('Data channel is open');
+    dataChannel.send('Call initiated');
+  };
 
-  // // Create the offer
+  // Listen for incoming messages on the data channel
+  dataChannel.onmessage = (event) => {
+    console.log('Message from remote: ', event.data);
+  };
+
+  // Create the offer
   const offerDescription = await pc.createOffer();
 
   const offer = {
@@ -141,10 +131,10 @@ callButton.onclick = async () => {
 
   setLocalDescriptionSafely(offerDescription);
 
-  // // Set the offer in Firestore (create the document with offer data)
+  // Set the offer in Firestore (create the document with offer data)
   await setDoc(callDocRef, { offer });
 
-  // // Listen for remote answer
+  // Listen for remote answer
   onSnapshot(callDocRef, (snapshot) => {
     const data = snapshot.data();
     if (!pc.currentRemoteDescription && data?.answer) {
@@ -153,7 +143,7 @@ callButton.onclick = async () => {
     }
   });
 
-  // // // When answered, add candidates to the peer connection
+  // When answered, add candidates to the peer connection
   onSnapshot(answerCandidatesRef, (snapshot) => {
     snapshot.docChanges().forEach((change) => {
       if (change.type === 'added') {
@@ -162,12 +152,9 @@ callButton.onclick = async () => {
       }
     });
   });
+
   hangupButton.disabled = false;
 }
-
-
-// Initialize Firestore
-//const firestore = getFirestore();
 
 answerButton.onclick = async () => {
   const callId = callInput.value;
@@ -178,6 +165,7 @@ answerButton.onclick = async () => {
   if (callId === meetingId) {
     alert('Please enter a valid call ID.');
   }
+
   // Reference the specific call document
   const callDocRef = doc(firestore, 'calls', callId);
   const answerCandidatesRef = collection(callDocRef, 'answerCandidates');
@@ -203,14 +191,17 @@ answerButton.onclick = async () => {
 
   // Set the local description (the answer) and send it back to Peer A
   setLocalDescriptionSafely(answerDescription);
-  console.log('ggggggggggggggggggggggggggggggggggg');
+  
+  // Send back a message to notify that the call is accepted
+  dataChannel.send('Call accepted');
+
   // Prepare the answer to send back
   const answer = {
     type: answerDescription.type,
     sdp: answerDescription.sdp,
   };
 
-  // Send the answer back to Peer A through the signaling server
+  // Send the answer back to Peer A through Firestore
   await updateDoc(callDocRef, { answer });
 
   // Listen for offer candidates and add them to the peer connection
@@ -236,13 +227,12 @@ answerButton.onclick = async () => {
   hangupButton.disabled = false;
 };
 
-
 // Function to end the call
 hangupButton.onclick = async () => {
   // Stop all local media tracks (audio/video)
-  const localStream = pc.getLocalStreams()[0];  // Assuming you have only one local stream
+  const localStream = pc.getLocalStreams()[0];
   if (localStream) {
-    localStream.getTracks().forEach(track => track.stop()); // Stop all tracks (audio/video)
+    localStream.getTracks().forEach(track => track.stop());
   }
 
   // Stop the remote stream (if applicable)
@@ -252,7 +242,7 @@ hangupButton.onclick = async () => {
 
   // Close the RTCPeerConnection
   if (pc) {
-    pc.close();  // Close the peer connection
+    pc.close();
     console.log("Peer connection closed");
   }
 
@@ -262,32 +252,15 @@ hangupButton.onclick = async () => {
   // Optionally: Clean up UI, such as hiding video elements or showing a disconnected message
   const remoteVideo = document.getElementById('remoteVideo');
   if (remoteVideo) {
-    remoteVideo.srcObject = null;  // Clear the remote video stream
+    remoteVideo.srcObject = null;
   }
 
   const localVideo = document.getElementById('localVideo');
   if (localVideo) {
-    localVideo.srcObject = null;  // Clear the local video stream
+    localVideo.srcObject = null;
   }
 
-  // Reset signaling state (if needed)
-  // You can reset some variables if you want to handle the next call.
   console.log("Call ended and resources cleaned up");
 
   webcamButton.disabled = false;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
