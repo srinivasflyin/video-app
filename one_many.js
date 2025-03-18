@@ -1,5 +1,5 @@
 // Import Firebase functions
-import { collection, doc, setDoc, updateDoc, addDoc, onSnapshot, getDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, updateDoc, addDoc, onSnapshot, getDoc, arrayUnion } from 'firebase/firestore';
 import { firestore } from './firebase.config';
 
 // DOM elements
