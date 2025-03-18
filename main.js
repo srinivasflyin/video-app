@@ -1,6 +1,9 @@
 import './style.css';
 import { firestore } from './firebase.config';
-import { collection, getDocs, doc, setDoc, onSnapshot, updateDoc, query, where, addDoc, getDoc } from 'firebase/firestore';
+import { collection, 
+  getDocs, 
+  doc, 
+  setDoc, onSnapshot, updateDoc, query, where, addDoc, getDoc, deleteDoc } from 'firebase/firestore';
 
 const servers = {
   iceServers: [
@@ -15,7 +18,7 @@ let localStream = null;
 let remoteStream = null;
 let currentCallId = null;
 let dataChannel = null;
-
+let targetUserId = null;
 // DOM elements
 const webcamButton = document.getElementById('webcamButton');
 const hangupButton = document.getElementById('hangupButton');
@@ -62,6 +65,7 @@ async function getUsers() {
 
 
 async function initiateCall(currentUserId, targetUserId) {
+  targetUserId = targetUserId;
   // Generate a unique call ID based on the two users' IDs
   const currentCallId = `${currentUserId}-${targetUserId}`;
 
@@ -111,6 +115,21 @@ async function initiateCall(currentUserId, targetUserId) {
   sendMessageToCallee(targetUserId, currentUserId, currentCallId);  // Notify target user about the call
 
   console.log(`Call initiated with call ID: ${currentCallId}`);
+}
+
+
+
+// Logic to remove the document based on targetUserId
+async function removeNotification(targetUserId, currentCallId) {
+  const notificationsRef = collection(firestore, 'notifications', targetUserId, 'incomingCalls');
+  
+  // Assuming you have the documentId, you can delete it directly by the document ID
+  const docRef = doc(notificationsRef, currentCallId); // If the document's ID is `callId`
+  
+  // Delete the document directly
+  await deleteDoc(docRef);
+  console.log(`Document with callId: ${currentCallId} removed successfully.`);
+
 }
 
 
@@ -172,10 +191,6 @@ function sendMessage(message) {
 function showNotification(message) {
   notificationContainer.textContent = message;
   notificationContainer.style.display = 'block';
-
-  setTimeout(() => {
-    notificationContainer.style.display = 'none';
-  }, 5000);
 }
 
 // Setup the remote stream
@@ -224,6 +239,8 @@ function showIncomingCallNotification(callerId, callId) {
 
 
 async function answerCall(callId) {
+  const notificationElement = document.getElementById('notificationContainer');
+  notificationContainer.disabled = 'none';
   const callDocRef = doc(firestore, 'calls', callId);
   const offerCandidatesRef = collection(callDocRef, 'offerCandidates');
   const answerCandidatesRef = collection(callDocRef, 'answerCandidates');
@@ -269,7 +286,8 @@ async function answerCall(callId) {
 
   // Start the data channel after answering
   createDataChannel();
-  sendMessage('Call accepted');
+  //sendMessage('Call accepted');
+  removeNotification(targetUserId, callId);
 }
 
 
