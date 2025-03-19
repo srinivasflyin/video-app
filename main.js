@@ -5,6 +5,11 @@ import { collection, getDocs, doc, setDoc, onSnapshot, updateDoc, query, where, 
 const servers = {
   iceServers: [
     { urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] },
+    {
+      urls: 'turn:192.158.29.39.3478',
+      username: 'webrtc',
+      credential: 'webrtc'
+    }
   ],
   iceCandidatePoolSize: 10,
 };
@@ -105,7 +110,7 @@ async function initiateCall(currentUserId, targetUserId, remoteUserName) {
 
   // Store the call document with the offer information
   const offerDescription = await pc.createOffer();
-
+  offerDescription.sdp.replace(/(m=audio.*?)(\r\n)/, '$1;fmtp:111 minptime=10;maxaveragebitrate=64000\r\n');
   // Save offer to Firestore
   const offer = {
     sdp: offerDescription.sdp,
@@ -160,14 +165,33 @@ function sendMessageToCallee(targetUserId, currentUserId, currentCallId, remoteU
 async function setupLocalMedia() {
   try {
     remoteVideo.style.display = 'none';
-    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    localStream = await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: {
+        codec: 'opus',
+        echoCancellation: true, // Enable echo cancellation
+        noiseSuppression: true, // Enable noise suppression
+        autoGainControl: true   // Enable auto gain control
+      }
+    });
+
+
     remoteStream = new MediaStream();
     localStream.getTracks().forEach((track) => {
       pc.addTrack(track, localStream);
     });
 
+
+
+    const sender = pc.getSenders().find(sender => sender.track.kind === 'audio');
+    const parameters = sender.getParameters();
+    parameters.encodings[0].maxBitrate = 32000; // Set maximum bitrate (in bits per second)
+    await sender.setParameters(parameters)
+ 
+    // set local & remote video src objects
     localVideo.srcObject = localStream;
     remoteVideo.srcObject = remoteStream;
+
   } catch (err) {
     console.log("Error accessing media devices: ", err);
     if (err.name === 'NotFoundError') {
@@ -221,8 +245,22 @@ pc.ontrack = (event) => {
   remoteVideo.srcObject = remoteStream;
 };
 
+
+// Example: Get WebRTC stats to monitor media quality
+pc.getStats(null).then(stats => {
+  stats.forEach(report => {
+    if (report.type === 'inbound-rtp') {
+      const packetLoss = report.packetsLost / report.packetsReceived;
+      console.log(`Packet loss: ${packetLoss * 100}%`);
+    }
+  });
+});
+
+
+
 // Hangup the call
 hangupButton.onclick = () => {
+  answerButton.style.disabled = false;
   userList.style.display = 'block';
   localStream.getTracks().forEach(track => track.stop());
   remoteStream.getTracks().forEach(track => track.stop());
@@ -254,7 +292,7 @@ function showIncomingCallNotification(callerId, callId, targetUserId, remoteUser
   const notificationElement = document.getElementById('notificationContainer');
   notificationElement.style.display = 'block';
   const incomingCallMessageElement = document.getElementById('incomingCallMessage');
-  incomingCallMessageElement.textContent = `Incoming call from ${callerId}`;
+  incomingCallMessageElement.textContent = `Incoming call from ${remoteUserName}`;
   const answerButton = document.getElementById('answerButton');
   console.log('hhhhhhhhhhhhh', answerButton);
   answerButton.disabled = false;
@@ -264,6 +302,7 @@ function showIncomingCallNotification(callerId, callId, targetUserId, remoteUser
 
 
 async function answerCall(callId, targetUserId) {
+  answerButton.style.disabled = true;
   userList.style.display = 'none';
   const callDocRef = doc(firestore, 'calls', callId);
   const offerCandidatesRef = collection(callDocRef, 'offerCandidates');
@@ -311,6 +350,10 @@ async function answerCall(callId, targetUserId) {
   // Start the data channel after answering
   // createDataChannel();
   // sendMessage('Call accepted');
+
+  setTimeout(() => {
+    answerButton.style.disabled = false;
+  }, 500);
   removeNotification(targetUserId);
   hangupButton.style.display = 'block';
 }

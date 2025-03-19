@@ -6,10 +6,11 @@ const __dirname = path.resolve();
 console.log('gggggggggggg', fs.readFileSync(path.resolve(__dirname, './ssl/server.crt')));
 export default defineConfig({
   server: {
-    https: {
+    https: process.env.NODE_ENV === 'production' ?
+    {
       key: fs.readFileSync(path.resolve(__dirname, './ssl/server.key')),
       cert: fs.readFileSync(path.resolve(__dirname, './ssl/server.crt')),
-    },
+    } : false,
   },
   port: 3000
 });
