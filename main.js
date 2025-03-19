@@ -83,14 +83,13 @@ async function removeNotification(targetUserId) {
 
 
 function generateRandomId() {
-  return 'id-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+  return 'id-' + Date.now() + '-' + Math.random().toString(36).slice(2, 11);
 }
 
 
 async function initiateCall(currentUserId, targetUserId, remoteUserName) {
-  console.log('hhhhhhhhhhhhhhh', remoteUserName);
   // Generate a unique call ID based on the two users' IDs
-  const currentCallId = `${currentUserId}-${targetUserId - generateRandomId()}`;
+  const currentCallId = `${currentUserId}-${targetUserId}- ${generateRandomId()}`;
 
   // Reference to the Firestore document for this specific call
   const callDocRef = doc(firestore, 'calls', currentCallId); // Firestore document for this call
