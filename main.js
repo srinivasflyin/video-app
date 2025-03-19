@@ -65,6 +65,79 @@ async function getUsers() {
   });
 }
 
+async function setAudioSettings(pc) {
+  const audioSender = pc.getSenders().find(sender => sender.track.kind === 'audio');
+
+  // If there's an audio sender, adjust the bitrate
+  if (audioSender) {
+    const audioParameters = audioSender.getParameters();
+
+    // Make sure we have encodings to modify
+    if (audioParameters.encodings && audioParameters.encodings.length > 0) {
+      // Create a copy of the encodings array to avoid modifying read-only properties
+      const encodingsCopy = audioParameters.encodings.map(encoding => {
+        // Create a shallow copy of each encoding
+        const encodingCopy = { ...encoding };
+
+        // Modify the mutable fields (maxBitrate in this case)
+        encodingCopy.maxBitrate = 32000; // Set max bitrate to 32 kbps for audio
+
+        return encodingCopy;
+      });
+
+      // Set the modified encodings back to the audio parameters
+      audioParameters.encodings = encodingsCopy;
+
+      // Apply the modified parameters
+      await audioSender.setParameters(audioParameters);
+      console.log('Audio parameters adjusted successfully');
+    } else {
+      console.error('No audio encodings found.');
+    }
+  } else {
+    console.error('No audio sender found.');
+  }
+
+}
+
+
+async function setVideoSettings(pc) {
+
+  const videoSender = pc.getSenders().find(sender => sender.track.kind === 'video');
+
+  if (videoSender) {
+    // Retrieve the current video parameters
+    const videoParameters = videoSender.getParameters();
+
+    // Make sure we have encodings to modify
+    if (videoParameters.encodings && videoParameters.encodings.length > 0) {
+      // Create a copy of encodings to avoid directly modifying the read-only parameter
+      const encodingsCopy = videoParameters.encodings.map(encoding => {
+        // Only modify the mutable properties
+        const encodingCopy = { ...encoding };
+
+        // Modify only the mutable fields:
+        encodingCopy.maxBitrate = 2000000; // 2 Mbps for example
+        encodingCopy.frameRate = 30; // Set to 30 fps
+        encodingCopy.scaleResolutionDownBy = 2; // Optional: scale down if needed
+
+        return encodingCopy;
+      });
+
+      // Set the modified encodings back to the parameters
+      videoParameters.encodings = encodingsCopy;
+
+      // Set the updated parameters back to the video sender
+      await videoSender.setParameters(videoParameters)
+    } else {
+      console.error('No video encodings found.');
+    }
+  } else {
+    console.error('No video sender found.');
+  }
+
+
+}
 
 
 // Logic to remove the document based on targetUserId
@@ -175,19 +248,22 @@ async function setupLocalMedia() {
       }
     });
 
+    //audioTrack.enabled = false; // Mute audio temporarily
+    // Later, when needed:
+    //audioTrack.enabled = true; // Unmute the audio
+
+    // mute or unmute video
+    //videoTrack.enabled = false; // Mute audio temporarily
+    // Later, when needed:
+    //videoTrack.enabled = true; // Unmute the audio
 
     remoteStream = new MediaStream();
     localStream.getTracks().forEach((track) => {
       pc.addTrack(track, localStream);
     });
 
-
-
-    // const sender = pc.getSenders().find(sender => sender.track.kind === 'audio');
-    // const parameters = sender.getParameters();
-    // parameters.encodings[0].maxBitrate = 32000; // Set maximum bitrate (in bits per second)
-    // await sender.setParameters(parameters)
- 
+    await setAudioSettings(pc);
+    await setVideoSettings(pc);
     // set local & remote video src objects
     localVideo.srcObject = localStream;
     remoteVideo.srcObject = remoteStream;
@@ -195,11 +271,11 @@ async function setupLocalMedia() {
   } catch (err) {
     console.log("Error accessing media devices: ", err);
     if (err.name === 'NotFoundError') {
-      console("No media devices found.");
+      console.log("No media devices found.");
     } else if (err.name === 'NotAllowedError') {
-      console("Permission was denied.");
+      console.log("Permission was denied.");
     } else {
-      console("Error: " + err.message);
+      console.log("Error: " + err.message);
     }
   }
 }
