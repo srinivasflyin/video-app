@@ -183,10 +183,10 @@ async function setupLocalMedia() {
 
 
 
-    const sender = pc.getSenders().find(sender => sender.track.kind === 'audio');
-    const parameters = sender.getParameters();
-    parameters.encodings[0].maxBitrate = 32000; // Set maximum bitrate (in bits per second)
-    await sender.setParameters(parameters)
+    // const sender = pc.getSenders().find(sender => sender.track.kind === 'audio');
+    // const parameters = sender.getParameters();
+    // parameters.encodings[0].maxBitrate = 32000; // Set maximum bitrate (in bits per second)
+    // await sender.setParameters(parameters)
  
     // set local & remote video src objects
     localVideo.srcObject = localStream;
