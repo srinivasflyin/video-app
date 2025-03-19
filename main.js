@@ -295,8 +295,8 @@ window.onload = () => {
 // Handle the login process
 loginButton.addEventListener('click', async () => {
   hangupButton.style.display = 'none';
-  const username = usernameInput.value;
-  const password = passwordInput.value;
+  const username = usernameInput.value.trim();
+  const password = passwordInput.value.trim();
 
   if (username === '' || password === '') {
     errorMessage.style.display = 'block';

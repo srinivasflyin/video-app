@@ -5,50 +5,89 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>WebRTC Real-Time Call</title>
     <style>
+      /* General styles */
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f4f4f4;
+        color: #333;
+      }
+
+      /* Centering container */
       .center-container {
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
         margin-top: 50px;
+        text-align: center;
       }
 
+      /* Styling the user list */
       .user-list {
         display: flex;
         flex-direction: column;
         margin-top: 20px;
+        width: 100%;
+        max-width: 300px;
+        margin-bottom: 30px;
       }
 
       .user-item {
-        padding: 10px;
+        padding: 12px;
         cursor: pointer;
         background-color: #ddd;
         margin: 5px;
         border-radius: 5px;
+        transition: background-color 0.3s;
       }
 
+      .user-item:hover {
+        background-color: #bbb;
+      }
+
+      /* Videos section */
       .videos {
         display: flex;
-        justify-content: space-between;
-        margin-top: 20px;
+        flex-wrap: wrap;
+        justify-content: space-evenly;
+        gap: 20px;
+        width: 100%;
+        max-width: 1200px;
+        margin-top: 30px;
       }
 
       .video-container {
-        width: 45%;
+        width: 100%;
+        max-width: 500px;
+        background: #000;
+        border-radius: 8px;
+        overflow: hidden;
       }
 
+      .video-container h3 {
+        color: #fff;
+        padding: 10px;
+        background-color: #333;
+        margin: 0;
+      }
+
+      /* Notification container */
       #notificationContainer {
         position: absolute;
         top: 20px;
-        left: 20px;
+        left: 50%;
+        transform: translateX(-50%);
         background-color: rgba(0, 0, 0, 0.6);
         color: white;
-        padding: 10px;
+        padding: 15px;
         border-radius: 5px;
         display: none;
+        text-align: center;
       }
 
-      /* Fix for the login popup to be on top */
+      /* Login Popup */
       .login-popup {
         position: fixed;
         top: 0;
@@ -59,37 +98,39 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        z-index: 9999; /* Ensure it's above everything else */
-        pointer-events: all; /* Allow interaction with the popup */
+        z-index: 9999;
+        pointer-events: all;
       }
 
-      /* Centering and styling the login form */
+      /* Login form styling */
       .login-popup-content {
         background: white;
         padding: 20px;
         border-radius: 8px;
-        width: 300px;
+        width: 90%;
+        max-width: 400px;
         text-align: center;
-        z-index: 10000; /* Ensuring the content is above the background */
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
       }
 
-      /* Input and button styles */
       input {
         width: 100%;
         padding: 10px;
         margin: 10px 0;
         border-radius: 5px;
         border: 1px solid #ccc;
+        box-sizing: border-box;
       }
 
       button {
-        padding: 10px 20px;
+        padding: 12px 20px;
         background-color: #4CAF50;
         color: white;
         border: none;
         cursor: pointer;
         border-radius: 5px;
+        width: 100%;
+        margin-top: 10px;
       }
 
       button:hover {
@@ -98,7 +139,48 @@
 
       #errorMessage {
         color: red;
-        display: none; /* Hide error initially */
+        display: none;
+        margin-top: 10px;
+      }
+
+      /* Button container */
+      .button-container {
+        display: flex;
+        justify-content: center;
+        margin-top: 20px;
+        gap: 15px;
+        width: 100%;
+      }
+
+      /* Media queries for responsiveness */
+      @media (max-width: 768px) {
+        .videos {
+          flex-direction: column;
+          align-items: center;
+        }
+
+        .video-container {
+          width: 80%;
+          margin-bottom: 20px;
+        }
+
+        .user-list {
+          max-width: 100%;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .login-popup-content {
+          width: 90%;
+        }
+
+        .button-container {
+          flex-direction: column;
+        }
+
+        button {
+          width: 100%;
+        }
       }
 
     </style>
@@ -118,19 +200,23 @@
       </div>
     </div>
 
+    <!-- Notification Container -->
     <div id="notificationContainer">
-      <p id= "incomingCallMessage"></p>
+      <p id="incomingCallMessage"></p>
       <button id="answerButton">Answer</button>
     </div>
 
+    <!-- Main Content -->
     <div class="center-container">
       <h2>Online Users</h2>
       <div id="userList" class="user-list"></div>
-
-      <h2>Call Controls</h2>
-      <button id="hangupButton">Hang Up</button>
+      
+      <div class="button-container">
+        <button id="hangupButton">Hang Up</button>
+      </div>
     </div>
 
+    <!-- Video Streams -->
     <div class="videos">
       <div class="video-container">
         <h3>Local Stream</h3>
@@ -152,7 +238,3 @@
     <script src="./main.js" type="module"></script>
   </body>
 </html>
-
-
-
-
