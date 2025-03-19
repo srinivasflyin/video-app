@@ -1,240 +1,286 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>WebRTC Real-Time Call</title>
-    <style>
-      /* General styles */
-      body {
-        font-family: Arial, sans-serif;
-        margin: 0;
-        padding: 0;
-        background-color: #f4f4f4;
-        color: #333;
-      }
 
-      /* Centering container */
-      .center-container {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        margin-top: 50px;
-        text-align: center;
-      }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WebRTC Real-Time Call</title>
+  <style>
+    /* General styles */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f4;
+      color: #333;
+    }
 
-      /* Styling the user list */
-      .user-list {
-        display: flex;
-        flex-direction: column;
-        margin-top: 20px;
-        width: 100%;
-        max-width: 300px;
-        margin-bottom: 30px;
-      }
+    /* Centering container */
+    .center-container {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      margin-top: 50px;
+      text-align: center;
+    }
 
-      .user-item {
-        padding: 12px;
-        cursor: pointer;
-        background-color: #ddd;
-        margin: 5px;
-        border-radius: 5px;
-        transition: background-color 0.3s;
-      }
+    /* Styling the user list */
+    .user-list {
+      display: flex;
+      flex-direction: column;
+      margin-top: 20px;
+      width: 100%;
+      max-width: 300px;
+      margin-bottom: 30px;
+    }
 
-      .user-item:hover {
-        background-color: #bbb;
-      }
+    .user-item {
+      padding: 12px;
+      cursor: pointer;
+      background-color: #ddd;
+      margin: 5px;
+      border-radius: 5px;
+      transition: background-color 0.3s;
+    }
 
-      /* Videos section */
+    .user-item:hover {
+      background-color: #bbb;
+    }
+
+    /* Videos section */
+    .videos {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-evenly;
+      gap: 20px;
+      width: 100%;
+      max-width: 1200px;
+      margin-top: 30px;
+    }
+
+    .video-container {
+      width: 100%;
+      max-width: 500px;
+      background: #000;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 20px;
+      /* Added bottom margin */
+    }
+
+    .video-container h3 {
+      color: #fff;
+      padding: 10px;
+      background-color: #333;
+      margin: 0;
+    }
+
+    /* Notification container */
+    #notificationContainer {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: rgba(0, 0, 0, 0.6);
+      color: white;
+      padding: 15px;
+      border-radius: 5px;
+      display: none;
+      text-align: center;
+    }
+
+    #incomingCallMessage {
+      color: white;
+      /* Ensures the call message text is white */
+      font-size: 16px;
+      margin: 0;
+    }
+
+    #answerButton {
+      padding: 12px 20px;
+      background-color: #4CAF50;
+      /* Green color */
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+      margin-top: 10px;
+      width: 100%;
+    }
+
+    #answerButton:hover {
+      background-color: #45a049;
+    }
+
+    /* Login Popup */
+    .login-popup {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      pointer-events: all;
+    }
+
+    /* Login form styling */
+    .login-popup-content {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      width: 90%;
+      max-width: 400px;
+      text-align: center;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+
+    button {
+      padding: 12px 20px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    #errorMessage {
+      color: red;
+      display: none;
+      margin-top: 10px;
+    }
+
+    /* Button container */
+    .button-container {
+      display: flex;
+      justify-content: center;
+      margin-top: 20px;
+      gap: 15px;
+      width: 100%;
+    }
+
+    /* Media queries for responsiveness */
+    @media (max-width: 768px) {
       .videos {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: space-evenly;
-        gap: 20px;
-        width: 100%;
-        max-width: 1200px;
-        margin-top: 30px;
+        flex-direction: column;
+        align-items: center;
       }
 
       .video-container {
-        width: 100%;
-        max-width: 500px;
-        background: #000;
-        border-radius: 8px;
-        overflow: hidden;
+        width: 80%;
+        margin-bottom: 20px;
       }
 
-      .video-container h3 {
-        color: #fff;
-        padding: 10px;
-        background-color: #333;
-        margin: 0;
+      .user-list {
+        max-width: 100%;
       }
+    }
 
-      /* Notification container */
-      #notificationContainer {
-        position: absolute;
-        top: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        background-color: rgba(0, 0, 0, 0.6);
-        color: white;
-        padding: 15px;
-        border-radius: 5px;
-        display: none;
-        text-align: center;
-      }
-
-      /* Login Popup */
-      .login-popup {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.5);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 9999;
-        pointer-events: all;
-      }
-
-      /* Login form styling */
+    @media (max-width: 480px) {
       .login-popup-content {
-        background: white;
-        padding: 20px;
-        border-radius: 8px;
         width: 90%;
-        max-width: 400px;
-        text-align: center;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
       }
 
-      input {
-        width: 100%;
-        padding: 10px;
-        margin: 10px 0;
-        border-radius: 5px;
-        border: 1px solid #ccc;
-        box-sizing: border-box;
+      .button-container {
+        flex-direction: column;
       }
 
       button {
-        padding: 12px 20px;
-        background-color: #4CAF50;
-        color: white;
-        border: none;
-        cursor: pointer;
-        border-radius: 5px;
-        width: 100%;
-        margin-top: 10px;
-      }
-
-      button:hover {
-        background-color: #45a049;
-      }
-
-      #errorMessage {
-        color: red;
-        display: none;
-        margin-top: 10px;
-      }
-
-      /* Button container */
-      .button-container {
-        display: flex;
-        justify-content: center;
-        margin-top: 20px;
-        gap: 15px;
         width: 100%;
       }
+    }
 
-      /* Media queries for responsiveness */
-      @media (max-width: 768px) {
-        .videos {
-          flex-direction: column;
-          align-items: center;
-        }
+    #hangupButton {
+      padding: 10px 20px;
+      background-color: #f44336;
+      /* Red color */
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+      width: auto;
+      /* Makes the width of the button based on the content */
+      max-width: 200px;
+      /* Limits the maximum width */
+      margin: 0 auto;
+      /* Centers the button horizontally */
+    }
 
-        .video-container {
-          width: 80%;
-          margin-bottom: 20px;
-        }
+    #hangupButton:hover {
+      background-color: #e53935;
+      /* Darker red on hover */
+    }
+  </style>
+</head>
 
-        .user-list {
-          max-width: 100%;
-        }
-      }
+<body>
+  <!-- Login Popup -->
+  <div id="loginPopup" class="login-popup">
+    <div class="login-popup-content">
+      <h2>Login</h2>
+      <label for="username">Username</label>
+      <input type="text" id="username" placeholder="Enter your username" required />
+      <label for="password">Password</label>
+      <input type="password" id="password" placeholder="Enter your password" required />
 
-      @media (max-width: 480px) {
-        .login-popup-content {
-          width: 90%;
-        }
-
-        .button-container {
-          flex-direction: column;
-        }
-
-        button {
-          width: 100%;
-        }
-      }
-
-    </style>
-  </head>
-  <body>
-    <!-- Login Popup -->
-    <div id="loginPopup" class="login-popup">
-      <div class="login-popup-content">
-        <h2>Login</h2>
-        <label for="username">Username</label>
-        <input type="text" id="username" placeholder="Enter your username" required />
-        <label for="password">Password</label>
-        <input type="password" id="password" placeholder="Enter your password" required />
-
-        <button id="loginButton">Login</button>
-        <p id="errorMessage">Invalid username or password</p>
-      </div>
+      <button id="loginButton">Login</button>
+      <p id="errorMessage">Invalid username or password</p>
     </div>
+  </div>
 
-    <!-- Notification Container -->
-    <div id="notificationContainer">
-      <p id="incomingCallMessage"></p>
-      <button id="answerButton">Answer</button>
+  <!-- Notification Container -->
+  <div id="notificationContainer">
+    <p id="incomingCallMessage">You have an incoming call!</p>
+    <button id="answerButton">Answer</button>
+  </div>
+
+  <!-- Main Content -->
+  <div class="center-container">
+    <div id="userList" class="user-list"></div>
+    <div class="button-container">
+      <button id="hangupButton" style="background-color: red;color: white;">Hang Up</button>
     </div>
+  </div>
 
-    <!-- Main Content -->
-    <div class="center-container">
-      <h2>Online Users</h2>
-      <div id="userList" class="user-list"></div>
-      
-      <div class="button-container">
-        <button id="hangupButton">Hang Up</button>
-      </div>
+  <!-- Video Streams -->
+  <div class="videos">
+    <div class="video-container">
+      <h3>Local Stream</h3>
+      <video id="localVideo" autoplay playsinline></video>
     </div>
-
-    <!-- Video Streams -->
-    <div class="videos">
-      <div class="video-container">
-        <h3>Local Stream</h3>
-        <video id="localVideo" autoplay playsinline></video>
-      </div>
-      <div class="video-container">
-        <h3>Remote Stream</h3>
-        <video id="remoteVideo" autoplay playsinline></video>
-      </div>
+    <div class="video-container">
+      <h3>Remote Stream</h3>
+      <video id="remoteVideo" autoplay playsinline></video>
     </div>
+  </div>
 
-    <script type="module">
-      // JavaScript to show the login popup
-      window.onload = () => {
-        const loginPopup = document.getElementById('loginPopup');
-        loginPopup.style.display = 'flex'; // Show the login popup when the page load
-      };
-    </script>
-    <script src="./main.js" type="module"></script>
-  </body>
+  <script type="module">
+    // JavaScript to show the login popup
+    window.onload = () => {
+      const loginPopup = document.getElementById('loginPopup');
+      loginPopup.style.display = 'flex'; // Show the login popup when the page load
+    };
+  </script>
+  <script src="./main.js" type="module"></script>
+</body>
+
 </html>

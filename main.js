@@ -48,6 +48,8 @@ async function getUsers() {
 
     const userItem = document.createElement('div');
     userItem.classList.add('user-item');
+    userItem.style.backgroundColor = 'green';
+    userItem.style.color = 'white';
     userItem.textContent = `Call to: ${userData.username}`;
     userItem.onclick = () => initiateCall(currentUserId, doc.id);
     userListDiv.appendChild(userItem);
@@ -197,6 +199,7 @@ pc.ontrack = (event) => {
 
 // Hangup the call
 hangupButton.onclick = () => {
+  userList.style.display = 'block';
   localStream.getTracks().forEach(track => track.stop());
   remoteStream.getTracks().forEach(track => track.stop());
   pc.close();
@@ -237,6 +240,7 @@ function showIncomingCallNotification(callerId, callId, targetUserId) {
 
 
 async function answerCall(callId, targetUserId) {
+  userList.style.display = 'none';
   const callDocRef = doc(firestore, 'calls', callId);
   const offerCandidatesRef = collection(callDocRef, 'offerCandidates');
   const answerCandidatesRef = collection(callDocRef, 'answerCandidates');
