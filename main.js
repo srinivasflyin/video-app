@@ -363,7 +363,7 @@ loginButton.addEventListener('click', async () => {
       // Proceed with the app, maybe load user data or move to the next screen
       console.log('Login successful, user ID:', currentUserId);
       // Fetch the list of users and set up local video
-      localElement.textContent = `${username}`;
+      localElement.textContent = `${userData.firstName && userData.firstName} ${userData.lastName && userData.lastName}`;
       setupLocalMedia();
       listenForIncomingCall(currentUserId);
       getUsers();
