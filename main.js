@@ -77,9 +77,15 @@ querySnapshot.forEach(async (documentSnapshot) => {
 }
 
 
+
+function generateRandomId() {
+  return 'id-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+}
+
+
 async function initiateCall(currentUserId, targetUserId) {
   // Generate a unique call ID based on the two users' IDs
-  const currentCallId = `${currentUserId}-${targetUserId}`;
+  const currentCallId = `${currentUserId}-${targetUserId-generateRandomId()}`;
 
   // Reference to the Firestore document for this specific call
   const callDocRef = doc(firestore, 'calls', currentCallId); // Firestore document for this call
