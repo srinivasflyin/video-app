@@ -66,17 +66,17 @@ async function getUsers() {
 async function removeNotification(targetUserId) {
   const notificationElement = document.getElementById('notificationContainer');
   notificationElement.style.display = 'none';
- // Reference to the specific user's notifications document
- const incomingCallsRef = collection(firestore, 'notifications', targetUserId, 'incomingCalls');
- // Check if the document exists
-const querySnapshot = await getDocs(incomingCallsRef);
+  // Reference to the specific user's notifications document
+  const incomingCallsRef = collection(firestore, 'notifications', targetUserId, 'incomingCalls');
+  // Check if the document exists
+  const querySnapshot = await getDocs(incomingCallsRef);
 
-// Loop through each document and delete it
-querySnapshot.forEach(async (documentSnapshot) => {
-  const docRef = doc(incomingCallsRef, documentSnapshot.id);  // Get reference to the document
-  console.log(`Document with callId: ${targetUserId} removed successfully.`);
-  await deleteDoc(docRef);  // Delete the document
-});
+  // Loop through each document and delete it
+  querySnapshot.forEach(async (documentSnapshot) => {
+    const docRef = doc(incomingCallsRef, documentSnapshot.id);  // Get reference to the document
+    console.log(`Document with callId: ${targetUserId} removed successfully.`);
+    await deleteDoc(docRef);  // Delete the document
+  });
 
 }
 
@@ -90,7 +90,7 @@ function generateRandomId() {
 async function initiateCall(currentUserId, targetUserId, remoteUserName) {
   console.log('hhhhhhhhhhhhhhh', remoteUserName);
   // Generate a unique call ID based on the two users' IDs
-  const currentCallId = `${currentUserId}-${targetUserId-generateRandomId()}`;
+  const currentCallId = `${currentUserId}-${targetUserId - generateRandomId()}`;
 
   // Reference to the Firestore document for this specific call
   const callDocRef = doc(firestore, 'calls', currentCallId); // Firestore document for this call
@@ -157,15 +157,26 @@ function sendMessageToCallee(targetUserId, currentUserId, currentCallId, remoteU
 
 // Set local media
 async function setupLocalMedia() {
-  remoteVideo.style.display = 'none';
-  localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-  remoteStream = new MediaStream();
-  localStream.getTracks().forEach((track) => {
-    pc.addTrack(track, localStream);
-  });
+  try {
+    remoteVideo.style.display = 'none';
+    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    remoteStream = new MediaStream();
+    localStream.getTracks().forEach((track) => {
+      pc.addTrack(track, localStream);
+    });
 
-  localVideo.srcObject = localStream;
-  remoteVideo.srcObject = remoteStream;
+    localVideo.srcObject = localStream;
+    remoteVideo.srcObject = remoteStream;
+  } catch (err) {
+    console.log("Error accessing media devices: ", err);
+    if (err.name === 'NotFoundError') {
+      console("No media devices found.");
+    } else if (err.name === 'NotAllowedError') {
+      console("Permission was denied.");
+    } else {
+      console("Error: " + err.message);
+    }
+  }
 }
 
 // Create data channel
