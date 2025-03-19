@@ -1,6 +1,6 @@
 import './style.css';
 import { firestore } from './firebase.config';
-import { collection, getDocs, doc, setDoc, onSnapshot, updateDoc, query, where, addDoc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, setDoc, onSnapshot, updateDoc, query, where, addDoc, getDoc, deleteDoc } from 'firebase/firestore';
 
 const servers = {
   iceServers: [
@@ -13,14 +13,11 @@ const servers = {
 let pc = new RTCPeerConnection(servers);
 let localStream = null;
 let remoteStream = null;
-let currentCallId = null;
 let dataChannel = null;
 
 // DOM elements
-const webcamButton = document.getElementById('webcamButton');
 const hangupButton = document.getElementById('hangupButton');
 const userListDiv = document.getElementById('userList');
-const webcamVideo = document.getElementById('webcamVideo');
 const localVideo = document.getElementById('localVideo');
 const remoteVideo = document.getElementById('remoteVideo');
 const notificationContainer = document.getElementById('notificationContainer');
@@ -30,9 +27,6 @@ const usernameInput = document.getElementById('username');
 const passwordInput = document.getElementById('password');
 const loginButton = document.getElementById('loginButton');
 const errorMessage = document.getElementById('errorMessage');
-
-let currentUserId = 'user1';  // This should be dynamic, e.g., from a login system
-
 // Get online users from Firestore
 // Get online users from Firestore excluding the current user
 async function getUsers() {
@@ -54,10 +48,30 @@ async function getUsers() {
 
     const userItem = document.createElement('div');
     userItem.classList.add('user-item');
-    userItem.textContent = userData.username;
+    userItem.textContent = `Call to: ${userData.username}`;
     userItem.onclick = () => initiateCall(currentUserId, doc.id);
     userListDiv.appendChild(userItem);
   });
+}
+
+
+
+// Logic to remove the document based on targetUserId
+async function removeNotification(targetUserId) {
+  const notificationElement = document.getElementById('notificationContainer');
+  notificationElement.style.display = 'none';
+ // Reference to the specific user's notifications document
+ const incomingCallsRef = collection(firestore, 'notifications', targetUserId, 'incomingCalls');
+ // Check if the document exists
+const querySnapshot = await getDocs(incomingCallsRef);
+
+// Loop through each document and delete it
+querySnapshot.forEach(async (documentSnapshot) => {
+  const docRef = doc(incomingCallsRef, documentSnapshot.id);  // Get reference to the document
+  console.log(`Document with callId: ${targetUserId} removed successfully.`);
+  await deleteDoc(docRef);  // Delete the document
+});
+
 }
 
 
@@ -120,15 +134,16 @@ function sendMessageToCallee(targetUserId, currentUserId, currentCallId) {
   addDoc(notificationsRef, {
     callerId: currentUserId,
     callId: currentCallId,
+    targetUserId,
     timestamp: new Date(),
   });
 
   console.log(`Call notification sent to user ${targetUserId}`);
 }
 
-
 // Set local media
 async function setupLocalMedia() {
+  remoteVideo.style.display = 'none';
   localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
   remoteStream = new MediaStream();
   localStream.getTracks().forEach((track) => {
@@ -136,7 +151,7 @@ async function setupLocalMedia() {
   });
 
   localVideo.srcObject = localStream;
-  remoteVideo.srcObject = remoteStream;
+  //remoteVideo.srcObject = remoteStream;
 }
 
 // Create data channel
@@ -171,14 +186,11 @@ function sendMessage(message) {
 function showNotification(message) {
   notificationContainer.textContent = message;
   notificationContainer.style.display = 'block';
-
-  setTimeout(() => {
-    notificationContainer.style.display = 'none';
-  }, 5000);
 }
 
 // Setup the remote stream
 pc.ontrack = (event) => {
+  remoteVideo.style.display = 'block';
   remoteStream = event.streams[0];
   remoteVideo.srcObject = remoteStream;
 };
@@ -188,7 +200,9 @@ hangupButton.onclick = () => {
   localStream.getTracks().forEach(track => track.stop());
   remoteStream.getTracks().forEach(track => track.stop());
   pc.close();
-  hangupButton.disabled = true;
+  hangupButton.style.display = 'none';
+  localVideo.srcObject = null;
+  remoteVideo.srcObject = null;
 };
 
 
@@ -199,17 +213,17 @@ async function listenForIncomingCall(targetUserId) {
     snapshot.docChanges().forEach(async (change) => {
       if (change.type === 'added') {
         const callData = change.doc.data();
-        const { callerId, callId } = callData;
+        const { callerId, callId, targetUserId } = callData;
 
         // Notify the callee about the incoming call (e.g., show an "Answer" button)
-        showIncomingCallNotification(callerId, callId);
+        showIncomingCallNotification(callerId, callId, targetUserId);
       }
     });
   });
 }
 
 
-function showIncomingCallNotification(callerId, callId) {
+function showIncomingCallNotification(callerId, callId, targetUserId) {
   const notificationElement = document.getElementById('notificationContainer');
   notificationElement.style.display = 'block';
   const incomingCallMessageElement = document.getElementById('incomingCallMessage');
@@ -217,12 +231,12 @@ function showIncomingCallNotification(callerId, callId) {
   const answerButton = document.getElementById('answerButton');
   console.log('hhhhhhhhhhhhh', answerButton);
   answerButton.disabled = false;
-  answerButton.onclick = () => answerCall(callId);
+  answerButton.onclick = () => answerCall(callId, targetUserId);
 }
 
 
 
-async function answerCall(callId) {
+async function answerCall(callId, targetUserId) {
   const callDocRef = doc(firestore, 'calls', callId);
   const offerCandidatesRef = collection(callDocRef, 'offerCandidates');
   const answerCandidatesRef = collection(callDocRef, 'answerCandidates');
@@ -243,15 +257,15 @@ async function answerCall(callId) {
   // Create the answer and send it back to Firestore
   const answerDescription = await pc.createAnswer();
   setLocalDescriptionSafely(answerDescription);
-   
-    // Prepare the answer to send back
-    const answer = {
-      type: answerDescription.type,
-      sdp: answerDescription.sdp,
-    };
-  
-    // Send the answer back to Peer A through the signaling server
-    await updateDoc(callDocRef, { answer });
+
+  // Prepare the answer to send back
+  const answer = {
+    type: answerDescription.type,
+    sdp: answerDescription.sdp,
+  };
+
+  // Send the answer back to Peer A through the signaling server
+  await updateDoc(callDocRef, { answer });
 
   // Send the answer back to Firestore
   await updateDoc(callDocRef, { answer: answerDescription });
@@ -267,10 +281,11 @@ async function answerCall(callId) {
   });
 
   // Start the data channel after answering
-  createDataChannel();
-  sendMessage('Call accepted');
+  // createDataChannel();
+  // sendMessage('Call accepted');
+  removeNotification(targetUserId);
+  hangupButton.style.display = 'block';
 }
-
 
 // Show the login popup when the app loads (can replace this with your logic to show/hide the popup)
 window.onload = () => {
@@ -279,6 +294,7 @@ window.onload = () => {
 
 // Handle the login process
 loginButton.addEventListener('click', async () => {
+  hangupButton.style.display = 'none';
   const username = usernameInput.value;
   const password = passwordInput.value;
 
@@ -333,8 +349,6 @@ loginButton.addEventListener('click', async () => {
     errorMessage.textContent = 'An error occurred, please try again.';
   }
 });
-
-
 
 
 function setLocalDescriptionSafely(description) {
