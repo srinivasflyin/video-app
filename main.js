@@ -27,6 +27,10 @@ const usernameInput = document.getElementById('username');
 const passwordInput = document.getElementById('password');
 const loginButton = document.getElementById('loginButton');
 const errorMessage = document.getElementById('errorMessage');
+const remoteStreamElement = document.getElementById('remoteStream');
+const localElement = document.getElementById('localStream');
+
+remoteStreamElement.textContent = `Remote Video strem`;
 // Get online users from Firestore
 // Get online users from Firestore excluding the current user
 async function getUsers() {
@@ -51,7 +55,7 @@ async function getUsers() {
     userItem.style.backgroundColor = 'green';
     userItem.style.color = 'white';
     userItem.textContent = `Call to: ${userData.username}`;
-    userItem.onclick = () => initiateCall(currentUserId, doc.id);
+    userItem.onclick = () => initiateCall(currentUserId, doc.id, `${userData.firstName && userData.firstName} ${userData.lastName && userData.lastName}`);
     userListDiv.appendChild(userItem);
   });
 }
@@ -83,7 +87,8 @@ function generateRandomId() {
 }
 
 
-async function initiateCall(currentUserId, targetUserId) {
+async function initiateCall(currentUserId, targetUserId, remoteUserName) {
+  console.log('hhhhhhhhhhhhhhh', remoteUserName);
   // Generate a unique call ID based on the two users' IDs
   const currentCallId = `${currentUserId}-${targetUserId-generateRandomId()}`;
 
@@ -129,13 +134,13 @@ async function initiateCall(currentUserId, targetUserId) {
     });
   });
   // Notify the callee about the incoming call (via Firestore)
-  sendMessageToCallee(targetUserId, currentUserId, currentCallId);  // Notify target user about the call
+  sendMessageToCallee(targetUserId, currentUserId, currentCallId, remoteUserName);  // Notify target user about the call
 
   console.log(`Call initiated with call ID: ${currentCallId}`);
 }
 
 
-function sendMessageToCallee(targetUserId, currentUserId, currentCallId) {
+function sendMessageToCallee(targetUserId, currentUserId, currentCallId, remoteUserName) {
   console.log('hhhhhhhhhhhhhhh', targetUserId, currentCallId, currentCallId);
   // Store the call notification in Firestore for the target user
   const notificationsRef = collection(firestore, 'notifications', targetUserId, 'incomingCalls');
@@ -144,6 +149,7 @@ function sendMessageToCallee(targetUserId, currentUserId, currentCallId) {
     callId: currentCallId,
     targetUserId,
     timestamp: new Date(),
+    remoteUserName
   });
 
   console.log(`Call notification sent to user ${targetUserId}`);
@@ -159,7 +165,7 @@ async function setupLocalMedia() {
   });
 
   localVideo.srcObject = localStream;
-  //remoteVideo.srcObject = remoteStream;
+  remoteVideo.srcObject = remoteStream;
 }
 
 // Create data channel
@@ -222,17 +228,17 @@ async function listenForIncomingCall(targetUserId) {
     snapshot.docChanges().forEach(async (change) => {
       if (change.type === 'added') {
         const callData = change.doc.data();
-        const { callerId, callId, targetUserId } = callData;
+        const { callerId, callId, targetUserId, remoteUserName } = callData;
 
         // Notify the callee about the incoming call (e.g., show an "Answer" button)
-        showIncomingCallNotification(callerId, callId, targetUserId);
+        showIncomingCallNotification(callerId, callId, targetUserId, remoteUserName);
       }
     });
   });
 }
 
 
-function showIncomingCallNotification(callerId, callId, targetUserId) {
+function showIncomingCallNotification(callerId, callId, targetUserId, remoteUserName) {
   const notificationElement = document.getElementById('notificationContainer');
   notificationElement.style.display = 'block';
   const incomingCallMessageElement = document.getElementById('incomingCallMessage');
@@ -240,12 +246,13 @@ function showIncomingCallNotification(callerId, callId, targetUserId) {
   const answerButton = document.getElementById('answerButton');
   console.log('hhhhhhhhhhhhh', answerButton);
   answerButton.disabled = false;
-  answerButton.onclick = () => answerCall(callId, targetUserId);
+  answerButton.onclick = () => answerCall(callId, targetUserId, remoteUserName);
 }
 
 
 
-async function answerCall(callId, targetUserId) {
+async function answerCall(callId, targetUserId, remoteUserName) {
+  remoteStreamElement.textContent = `${remoteUserName}`;
   userList.style.display = 'none';
   const callDocRef = doc(firestore, 'calls', callId);
   const offerCandidatesRef = collection(callDocRef, 'offerCandidates');
@@ -345,6 +352,7 @@ loginButton.addEventListener('click', async () => {
       // Proceed with the app, maybe load user data or move to the next screen
       console.log('Login successful, user ID:', currentUserId);
       // Fetch the list of users and set up local video
+      localElement.textContent = `${username}`;
       setupLocalMedia();
       listenForIncomingCall(currentUserId);
       getUsers();
