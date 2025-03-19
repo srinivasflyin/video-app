@@ -357,18 +357,19 @@ async function listenForIncomingCall(targetUserId) {
         const { callerId, callId, targetUserId, remoteUserName } = callData;
 
         // Notify the callee about the incoming call (e.g., show an "Answer" button)
-        showIncomingCallNotification(callerId, callId, targetUserId, remoteUserName);
+        showIncomingCallNotification(callId, targetUserId, remoteUserName);
       }
     });
   });
 }
 
 
-function showIncomingCallNotification(callerId, callId, targetUserId, remoteUserName) {
+function showIncomingCallNotification(callId, targetUserId, remoteUserName) {
   const notificationElement = document.getElementById('notificationContainer');
   notificationElement.style.display = 'block';
   const incomingCallMessageElement = document.getElementById('incomingCallMessage');
   incomingCallMessageElement.textContent = `Incoming call from ${remoteUserName}`;
+  remoteStreamElement.textContent = `${remoteUserName}`;
   const answerButton = document.getElementById('answerButton');
   console.log('hhhhhhhhhhhhh', answerButton);
   answerButton.disabled = false;
