@@ -88,6 +88,7 @@ function generateRandomId() {
 
 
 async function initiateCall(currentUserId, targetUserId, remoteUserName) {
+  remoteStreamElement.textContent = `${remoteUserName}`;
   // Generate a unique call ID based on the two users' IDs
   const currentCallId = `${currentUserId}-${targetUserId}- ${generateRandomId()}`;
 
@@ -136,6 +137,7 @@ async function initiateCall(currentUserId, targetUserId, remoteUserName) {
   sendMessageToCallee(targetUserId, currentUserId, currentCallId, remoteUserName);  // Notify target user about the call
 
   console.log(`Call initiated with call ID: ${currentCallId}`);
+
 }
 
 
@@ -256,13 +258,12 @@ function showIncomingCallNotification(callerId, callId, targetUserId, remoteUser
   const answerButton = document.getElementById('answerButton');
   console.log('hhhhhhhhhhhhh', answerButton);
   answerButton.disabled = false;
-  answerButton.onclick = () => answerCall(callId, targetUserId, remoteUserName);
+  answerButton.onclick = () => answerCall(callId, targetUserId);
 }
 
 
 
-async function answerCall(callId, targetUserId, remoteUserName) {
-  remoteStreamElement.textContent = `${remoteUserName}`;
+async function answerCall(callId, targetUserId) {
   userList.style.display = 'none';
   const callDocRef = doc(firestore, 'calls', callId);
   const offerCandidatesRef = collection(callDocRef, 'offerCandidates');
